@@ -1,0 +1,121 @@
+SPRINGFIELD GENERAL HOSPITAL
+EMERGENCY DEPARTMENT REPORT
+
+Patient: Walsh, Jennifer M.
+DOB: 09/14/1981
+MRN: SGH-2024-87654
+Date of Service: March 20, 2024
+Time of Arrival: 14:10 (2:10 PM)
+Time of Discharge: 16:45 (4:45 PM)
+
+CHIEF COMPLAINT:
+42-year-old female presents via EMS after slip and fall incident at restaurant with head trauma and back pain.
+
+HISTORY OF PRESENT ILLNESS:
+Patient reports slipping on wet floor while walking to table at restaurant approximately 1:45 PM today. States she fell backwards, striking head on table corner and landing on back on hard floor. Denies loss of consciousness. Reports immediate onset of headache and lower back pain. No nausea or vomiting. No visual disturbances.
+
+PAST MEDICAL HISTORY:
+- Hypertension (controlled with medication)
+- No previous head injuries
+- No history of seizures
+- Allergies: Penicillin (rash)
+
+MEDICATIONS:
+- Lisinopril 10mg daily
+- Multivitamin
+
+SOCIAL HISTORY:
+- Occupation: Elementary school teacher
+- Non-smoker
+- Occasional alcohol use
+- Lives with spouse
+
+PHYSICAL EXAMINATION:
+Vital Signs:
+- Blood Pressure: 145/88 mmHg
+- Heart Rate: 78 bpm
+- Respiratory Rate: 18/min
+- Temperature: 98.6°F
+- Oxygen Saturation: 99% on room air
+- Pain Scale: 6/10 (head), 4/10 (back)
+
+General: Alert, oriented x3, appears uncomfortable but stable
+
+Head/Neck:
+- 1.2 cm superficial laceration to posterior occipital region
+- No active bleeding
+- No palpable step-offs or depressions
+- Neck supple, no tenderness
+- No lymphadenopathy
+
+Neurological:
+- Glasgow Coma Scale: 15/15
+- Pupils equal, round, reactive to light
+- Cranial nerves II-XII intact
+- Motor strength 5/5 in all extremities
+- Sensation intact to light touch
+- Deep tendon reflexes 2+ and symmetric
+- Negative Romberg test
+- Gait steady (observed)
+
+Musculoskeletal:
+- Tenderness to palpation over L3-L5 lumbar region
+- No visible deformity
+- Range of motion limited by pain
+- No extremity injuries noted
+- No obvious fractures
+
+DIAGNOSTIC STUDIES:
+CT Head without contrast (14:35):
+- No acute intracranial hemorrhage
+- No midline shift
+- No skull fractures identified
+- Impression: Normal study
+
+Lumbar Spine X-rays (2 views) (15:20):
+- No acute fractures identified
+- Normal vertebral alignment
+- Mild degenerative changes consistent with age
+- Impression: No acute abnormalities
+
+TREATMENT:
+- Wound care: Laceration irrigated and closed with 3 skin staples
+- Pain management: 
+  * Acetaminophen 1000mg PO
+  * Ibuprofen 600mg PO
+- Ice pack application
+- Patient education provided
+
+DISPOSITION:
+Discharged home in stable condition with spouse present.
+
+DISCHARGE DIAGNOSES:
+1. Minor closed head injury with scalp laceration
+2. Lumbar strain/contusion
+3. Post-traumatic headache
+
+DISCHARGE INSTRUCTIONS:
+- Return immediately for severe headache, vomiting, confusion, or neurological changes
+- Follow up with primary care physician in 2-3 days
+- Staple removal in 7-10 days
+- Light duty/modified activities for 1 week
+- No driving for 24 hours
+- Ice to back 20 minutes every 2 hours for first 48 hours
+- Acetaminophen and ibuprofen as needed for pain
+
+WORK STATUS:
+- Recommend 3 days off work
+- Light duty for remainder of week
+- Follow-up with PCP for return-to-work clearance
+
+FOLLOW-UP:
+- Primary care physician: Dr. Sarah Kim - scheduled for March 22, 2024
+- Return to ED if condition worsens
+
+Attending Physician: Dr. Michael Rodriguez, MD
+Emergency Medicine
+Date: March 20, 2024
+
+DISCHARGE TIME: 16:45 (4:45 PM)
+CONDITION: Stable
+ACCOMPANIED BY: Thomas Walsh (spouse)

@@ -1,0 +1,71 @@
+JOE'S AUTO BODY SHOP
+Professional Collision Repair
+789 Industrial Blvd, Springfield, IL 62702
+Phone: (555) AUTO-FIX | License: IL-AR-12345
+
+REPAIR ESTIMATE
+
+Date: March 15, 2024
+Estimate #: JAB-2024-0315
+Customer: Sarah Johnson
+Phone: (555) 123-4567
+Email: sarah.johnson@email.com
+
+Vehicle Information:
+Year: 2019
+Make: Honda
+Model: Civic
+VIN: 2HGFC2F59KH123456
+Mileage: 45,230
+Color: Alabaster Silver Metallic (NH-830M)
+
+Insurance Information:
+Company: InsuranceCo
+Policy #: AC789456123
+Claim #: [To be assigned]
+
+DAMAGE ASSESSMENT:
+Primary Impact: Passenger side, mid-vehicle
+Secondary Damage: Rear quarter panel deformation
+
+PARTS REQUIRED:
+- Passenger front door shell                 $1,245.00
+- Passenger door handle (exterior)              $85.00
+- Passenger door window regulator              $165.00
+- Passenger door glass                         $220.00
+- Door weatherstrip                             $45.00
+- Rear quarter panel (partial replacement)     $890.00
+- Side impact door beam                        $125.00
+
+LABOR OPERATIONS:
+- Remove and replace passenger door            4.5 hrs @ $75/hr = $337.50
+- Align and adjust door                        1.2 hrs @ $75/hr = $90.00
+- Repair rear quarter panel                    8.0 hrs @ $75/hr = $600.00
+- Prime and paint (3-stage metallic)          6.5 hrs @ $75/hr = $487.50
+- Color sand and polish                        2.0 hrs @ $75/hr = $150.00
+- Final assembly and detail                    1.5 hrs @ $75/hr = $112.50
+
+MATERIALS:
+- Paint materials (primer, base, clear)        $285.00
+- Sandpaper and supplies                        $65.00
+- Masking materials                             $35.00
+- Polishing compound                            $25.00
+
+SUBTOTAL PARTS:                              $2,775.00
+SUBTOTAL LABOR:                              $1,777.50
+SUBTOTAL MATERIALS:                            $410.00
+SALES TAX (8.25%):                             $387.31
+
+TOTAL ESTIMATE:                              $5,349.81
+
+NOTES:
+- Estimate valid for 30 days
+- All parts OEM Honda genuine parts
+- Paint warranty: 5 years
+- Labor warranty: 2 years
+- Vehicle will require 4-5 business days for completion
+- Additional damage may be discovered during disassembly
+
+Prepared by: Mike Peterson, Estimator
+Reviewed by: Joe Martinez, Owner
+Date: March 15, 2024

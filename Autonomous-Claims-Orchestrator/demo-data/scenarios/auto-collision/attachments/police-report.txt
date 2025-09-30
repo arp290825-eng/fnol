@@ -1,0 +1,60 @@
+SPRINGFIELD POLICE DEPARTMENT
+TRAFFIC ACCIDENT REPORT
+
+Case Number: 2024-031534
+Date: March 15, 2024
+Time: 09:15 hours
+Location: Oak Street & 5th Avenue
+
+REPORTING OFFICER: Officer M. Rodriguez (Badge #4021)
+WEATHER: Clear, dry conditions
+ROAD SURFACE: Dry asphalt
+
+VEHICLE 1:
+Driver: Johnson, Sarah M.
+DOB: 08/12/1985
+License: IL-D123456789
+Vehicle: 2019 Honda Civic, 4-door sedan
+VIN: 2HGFC2F59KH123456
+License Plate: XYZ-789
+Color: Silver
+Insurance: InsuranceCo (Policy #AC789456123)
+Damage: Moderate damage to passenger side door and rear quarter panel
+
+VEHICLE 2:
+Driver: Thompson, Michael R.
+DOB: 03/22/1978
+License: IL-D987654321
+Vehicle: 2020 Ford F-150, pickup truck
+VIN: 1FTFW1ET5LFC67890
+License Plate: ABC-123
+Color: Blue
+Insurance: State Farm (Policy #SF456789012)
+Damage: Minor damage to front bumper and headlight
+
+NARRATIVE:
+Vehicle 1 (Honda Civic) was traveling eastbound on Oak Street, approaching the intersection with 5th Avenue. Vehicle 2 (Ford F-150) was traveling southbound on 5th Avenue. 
+
+Traffic signals were operational. Multiple witnesses confirm that Vehicle 2 proceeded through intersection against red traffic signal, striking Vehicle 1 in the passenger side as Vehicle 1 was proceeding through intersection on green signal.
+
+Driver of Vehicle 2 stated: "I didn't see the light change. I was checking my phone and looked up too late."
+
+CONTRIBUTING FACTORS:
+- Vehicle 2: Failure to obey traffic control device (red light)
+- Vehicle 2: Driver distraction (cell phone use)
+
+CITATIONS ISSUED:
+- Thompson, Michael R.: Failure to obey traffic control device (625 ILCS 5/11-306)
+- Thompson, Michael R.: Use of electronic communication device while driving (625 ILCS 5/12-610.2)
+
+WITNESSES:
+1. Martinez, Carlos - (555) 234-5678 - Pedestrian on southeast corner
+2. Williams, Janet - (555) 345-6789 - Driver stopped at red light behind Vehicle 2
+
+PROPERTY DAMAGE: Yes
+INJURIES: None reported
+HAZARDOUS MATERIALS: None
+TOWED VEHICLES: None
+
+OFFICER SIGNATURE: M. Rodriguez #4021
+SUPERVISOR APPROVAL: Sgt. K. Anderson #1205
