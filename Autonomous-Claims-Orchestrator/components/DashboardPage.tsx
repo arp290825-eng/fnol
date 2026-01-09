@@ -1,20 +1,15 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { 
-  BarChart3, 
-  TrendingUp, 
   Clock, 
   CheckCircle, 
   AlertTriangle,
-  Shield,
+  TrendingUp,
   RefreshCw,
-  ArrowLeft,
-  Download,
-  Eye
+  Download
 } from 'lucide-react'
-import { ClaimData, ProcessingMetrics } from '@/types/claims'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts'
+import { ClaimData } from '@/types/claims'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts'
 
 interface DashboardPageProps {
   claimData: ClaimData
@@ -22,6 +17,26 @@ interface DashboardPageProps {
 }
 
 export default function DashboardPage({ claimData, onReset }: DashboardPageProps) {
+  // Handle null claimData
+  if (!claimData || !claimData.decisionPack) {
+    return (
+      <div className="max-w-7xl mx-auto text-center py-16">
+        <AlertTriangle className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" />
+        <h2 className="text-2xl font-semibold text-[#111827] mb-2">No Claim Data Available</h2>
+        <p className="text-[#6B7280] mb-8">
+          Please process a claim first to view the dashboard.
+        </p>
+        <button
+          onClick={onReset}
+          className="btn-primary inline-flex items-center space-x-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Process New Claim</span>
+        </button>
+      </div>
+    )
+  }
+
   const { 
     decisionPack, 
     processingTime = 2000, 
@@ -48,203 +63,212 @@ export default function DashboardPage({ claimData, onReset }: DashboardPageProps
   ]
 
   const confidenceData = [
-    { name: 'High (≥80%)', value: evidence.filter(e => e.confidence >= 0.8).length, color: '#22c55e' },
-    { name: 'Medium (60-79%)', value: evidence.filter(e => e.confidence >= 0.6 && e.confidence < 0.8).length, color: '#f59e0b' },
-    { name: 'Low (<60%)', value: evidence.filter(e => e.confidence < 0.6).length, color: '#ef4444' }
+    { name: 'High (≥80%)', value: evidence.filter(e => e.confidence >= 0.8).length, color: '#2563EB' },
+    { name: 'Medium (60-79%)', value: evidence.filter(e => e.confidence >= 0.6 && e.confidence < 0.8).length, color: '#93C5FD' },
+    { name: 'Low (<60%)', value: evidence.filter(e => e.confidence < 0.6).length, color: '#DBEAFE' }
   ]
 
   const documentTypeData = documents.map(doc => ({
     name: doc.type,
     value: 1,
-    color: getDocumentColor(doc.type)
+    color: '#2563EB'
   }))
-
-  function getDocumentColor(type: string): string {
-    const colors: Record<string, string> = {
-      'PoliceReport': '#3b82f6',
-      'RepairEstimate': '#10b981',
-      'DamagePhoto': '#f59e0b',
-      'Invoice': '#8b5cf6',
-      'Other': '#6b7280'
-    }
-    return colors[type] || '#6b7280'
-  }
 
   const averageHandleTime = historicalData.reduce((sum, item) => sum + item.handleTime, 0) / historicalData.length
   const averageAutoPop = historicalData.reduce((sum, item) => sum + item.autoPop, 0) / historicalData.length
   const averageOverride = historicalData.reduce((sum, item) => sum + item.override, 0) / historicalData.length
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-7xl mx-auto"
-    >
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Operations Dashboard</h1>
-        <p className="text-lg text-gray-600">
-          Monitor performance metrics and governance compliance
+    <div className="max-w-7xl mx-auto">
+      {/* Page Title */}
+      <div className="mb-16">
+        <h1 className="text-3xl font-semibold text-[#111827] mb-2">
+          Operations Dashboard
+        </h1>
+        <p className="text-sm text-[#6B7280]">
+          Performance metrics and operational insights
         </p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid md:grid-cols-4 gap-6 mb-8">
-        <motion.div 
-          className="card p-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Avg Handle Time</p>
-              <p className="text-2xl font-bold text-gray-900">{averageHandleTime.toFixed(1)}s</p>
-            </div>
-            <Clock className="w-8 h-8 text-blue-600" />
+      <div className="grid md:grid-cols-4 gap-6 mb-16">
+        <div className="card p-6 h-full">
+          <div className="flex items-start justify-between mb-4">
+            <Clock className="w-5 h-5 text-[#9CA3AF] flex-shrink-0 mt-1" />
           </div>
-          <div className="mt-2">
-            <span className="text-sm text-success-600">↓ 12% from last week</span>
-          </div>
-        </motion.div>
+          <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-2">
+            Avg Handle Time
+          </p>
+          <p className="text-3xl font-semibold text-[#111827] mb-3">
+            {averageHandleTime.toFixed(1)}s
+          </p>
+          <p className="text-xs text-[#6B7280]">
+            ↓ 12% from last week
+          </p>
+        </div>
 
-        <motion.div 
-          className="card p-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Auto-population %</p>
-              <p className="text-2xl font-bold text-gray-900">{averageAutoPop.toFixed(0)}%</p>
-            </div>
-            <CheckCircle className="w-8 h-8 text-success" />
+        <div className="card p-6 h-full">
+          <div className="flex items-start justify-between mb-4">
+            <CheckCircle className="w-5 h-5 text-[#9CA3AF] flex-shrink-0 mt-1" />
           </div>
-          <div className="mt-2">
-            <span className="text-sm text-success-600">↑ 8% from last week</span>
-          </div>
-        </motion.div>
+          <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-2">
+            Auto-population
+          </p>
+          <p className="text-3xl font-semibold text-[#111827] mb-3">
+            {averageAutoPop.toFixed(0)}%
+          </p>
+          <p className="text-xs text-[#6B7280]">
+            ↑ 8% from last week
+          </p>
+        </div>
 
-        <motion.div 
-          className="card p-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Override Rate</p>
-              <p className="text-2xl font-bold text-gray-900">{averageOverride.toFixed(1)}%</p>
-            </div>
-            <AlertTriangle className="w-8 h-8 text-warning" />
+        <div className="card p-6 h-full">
+          <div className="flex items-start justify-between mb-4">
+            <AlertTriangle className="w-5 h-5 text-[#9CA3AF] flex-shrink-0 mt-1" />
           </div>
-          <div className="mt-2">
-            <span className="text-sm text-success-600">↓ 3% from last week</span>
-          </div>
-        </motion.div>
+          <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-2">
+            Override Rate
+          </p>
+          <p className="text-3xl font-semibold text-[#111827] mb-3">
+            {averageOverride.toFixed(1)}%
+          </p>
+          <p className="text-xs text-[#6B7280]">
+            ↓ 3% from last week
+          </p>
+        </div>
 
-        <motion.div 
-          className="card p-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">RAG Hit Rate</p>
-              <p className="text-2xl font-bold text-gray-900">{(ragHitRate * 100).toFixed(0)}%</p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-blue-600" />
+        <div className="card p-6 h-full">
+          <div className="flex items-start justify-between mb-4">
+            <TrendingUp className="w-5 h-5 text-[#9CA3AF] flex-shrink-0 mt-1" />
           </div>
-          <div className="mt-2">
-            <span className="text-sm text-success-600">↑ 15% from last week</span>
-          </div>
-        </motion.div>
+          <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-2">
+            RAG Hit Rate
+          </p>
+          <p className="text-3xl font-semibold text-[#111827] mb-3">
+            {(ragHitRate * 100).toFixed(0)}%
+          </p>
+          <p className="text-xs text-[#6B7280]">
+            ↑ 15% from last week
+          </p>
+        </div>
       </div>
 
       {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-8 mb-8">
+      <div className="grid lg:grid-cols-2 gap-6 mb-16">
         {/* Handle Time Trend */}
-        <motion.div 
-          className="card p-6"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <h3 className="text-lg font-semibold mb-4">Handle Time Trend</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="card p-6">
+          <h3 className="text-sm font-semibold text-[#111827] mb-6">Handle Time Trend</h3>
+          <ResponsiveContainer width="100%" height={280}>
             <LineChart data={historicalData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="handleTime" stroke="#3b82f6" strokeWidth={2} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <XAxis 
+                dataKey="date" 
+                stroke="#9CA3AF"
+                tick={{ fill: '#6B7280', fontSize: 12 }}
+                axisLine={{ stroke: '#E5E7EB' }}
+              />
+              <YAxis 
+                stroke="#9CA3AF"
+                tick={{ fill: '#6B7280', fontSize: 12 }}
+                axisLine={{ stroke: '#E5E7EB' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#FFFFFF', 
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '6px',
+                  fontSize: '12px'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="handleTime" 
+                stroke="#2563EB" 
+                strokeWidth={2}
+                dot={{ fill: '#2563EB', r: 3 }}
+                activeDot={{ r: 5 }}
+              />
             </LineChart>
           </ResponsiveContainer>
-        </motion.div>
+        </div>
 
         {/* Auto-population vs Override */}
-        <motion.div 
-          className="card p-6"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.6 }}
-        >
-          <h3 className="text-lg font-semibold mb-4">Auto-population vs Override</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="card p-6">
+          <h3 className="text-sm font-semibold text-[#111827] mb-6">Auto-population vs Override</h3>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={historicalData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="autoPop" fill="#22c55e" name="Auto-population %" />
-              <Bar dataKey="override" fill="#f59e0b" name="Override %" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <XAxis 
+                dataKey="date" 
+                stroke="#9CA3AF"
+                tick={{ fill: '#6B7280', fontSize: 12 }}
+                axisLine={{ stroke: '#E5E7EB' }}
+              />
+              <YAxis 
+                stroke="#9CA3AF"
+                tick={{ fill: '#6B7280', fontSize: 12 }}
+                axisLine={{ stroke: '#E5E7EB' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#FFFFFF', 
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '6px',
+                  fontSize: '12px'
+                }}
+              />
+              <Legend 
+                wrapperStyle={{ fontSize: '12px', color: '#6B7280' }}
+                iconType="square"
+              />
+              <Bar dataKey="autoPop" fill="#2563EB" name="Auto-population" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="override" fill="#DBEAFE" name="Override" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </motion.div>
+        </div>
       </div>
 
       {/* Detailed Metrics */}
-      <div className="grid lg:grid-cols-3 gap-8 mb-8">
+      <div className="grid lg:grid-cols-3 gap-6 mb-16">
         {/* Field Confidence Distribution */}
-        <motion.div 
-          className="card p-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-        >
-          <h3 className="text-lg font-semibold mb-4">Field Confidence Distribution</h3>
-          <ResponsiveContainer width="100%" height={250}>
+        <div className="card p-6">
+          <h3 className="text-sm font-semibold text-[#111827] mb-6">Field Confidence Distribution</h3>
+          <ResponsiveContainer width="100%" height={240}>
             <PieChart>
               <Pie
                 data={confidenceData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
+                label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                outerRadius={70}
+                fill="#2563EB"
                 dataKey="value"
               >
                 {confidenceData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#FFFFFF', 
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '6px',
+                  fontSize: '12px'
+                }}
+              />
+              <Legend 
+                wrapperStyle={{ fontSize: '12px', color: '#6B7280' }}
+                iconType="circle"
+              />
             </PieChart>
           </ResponsiveContainer>
-        </motion.div>
+        </div>
 
         {/* Document Types */}
-        <motion.div 
-          className="card p-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-        >
-          <h3 className="text-lg font-semibold mb-4">Document Types Processed</h3>
-          <ResponsiveContainer width="100%" height={250}>
+        <div className="card p-6">
+          <h3 className="text-sm font-semibold text-[#111827] mb-6">Document Types Processed</h3>
+          <ResponsiveContainer width="100%" height={240}>
             <PieChart>
               <Pie
                 data={documentTypeData}
@@ -252,116 +276,136 @@ export default function DashboardPage({ claimData, onReset }: DashboardPageProps
                 cy="50%"
                 labelLine={false}
                 label={({ name }) => name}
-                outerRadius={80}
-                fill="#8884d8"
+                outerRadius={70}
+                fill="#2563EB"
                 dataKey="value"
               >
                 {documentTypeData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#FFFFFF', 
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '6px',
+                  fontSize: '12px'
+                }}
+              />
             </PieChart>
           </ResponsiveContainer>
-        </motion.div>
+        </div>
 
         {/* Current Claim Summary */}
-        <motion.div 
-          className="card p-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-        >
-          <h3 className="text-lg font-semibold mb-4">Current Claim Summary</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Processing Time:</span>
-              <span className="text-sm font-medium">{(processingTime / 1000).toFixed(1)}s</span>
+        <div className="card p-6">
+          <h3 className="text-sm font-semibold text-[#111827] mb-6">Current Claim Summary</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-2 border-b border-[#F3F4F6]">
+              <span className="text-sm text-[#6B7280]">Processing Time</span>
+              <span className="text-sm font-semibold text-[#111827]">{(processingTime / 1000).toFixed(1)}s</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Fields Extracted:</span>
-              <span className="text-sm font-medium">{totalFields}</span>
+            <div className="flex justify-between items-center py-2 border-b border-[#F3F4F6]">
+              <span className="text-sm text-[#6B7280]">Fields Extracted</span>
+              <span className="text-sm font-semibold text-[#111827]">{totalFields}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">High Confidence:</span>
-              <span className="text-sm font-medium">{autoPopulatedFields}</span>
+            <div className="flex justify-between items-center py-2 border-b border-[#F3F4F6]">
+              <span className="text-sm text-[#6B7280]">High Confidence</span>
+              <span className="text-sm font-semibold text-[#111827]">{autoPopulatedFields}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Policy Matches:</span>
-              <span className="text-sm font-medium">{policyGrounding.length}</span>
+            <div className="flex justify-between items-center py-2 border-b border-[#F3F4F6]">
+              <span className="text-sm text-[#6B7280]">Policy Matches</span>
+              <span className="text-sm font-semibold text-[#111827]">{policyGrounding.length}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Documents:</span>
-              <span className="text-sm font-medium">{documents.length}</span>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-[#6B7280]">Documents</span>
+              <span className="text-sm font-semibold text-[#111827]">{documents.length}</span>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Governance & Compliance */}
-      <motion.div 
-        className="card p-6 mb-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.0 }}
-      >
-        <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-          <Shield className="w-5 h-5 text-blue-600" />
-          <span>Governance & Compliance</span>
+      <div className="card p-8 mb-12">
+        <h3 className="text-sm font-semibold text-[#111827] mb-8">
+          Governance & Compliance
         </h3>
         
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-12">
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Human-in-the-Loop Policy</h4>
-            <ul className="text-sm text-gray-600 space-y-2">
-              <li>• No automatic claim denials</li>
-              <li>• Fields below 70% confidence require review</li>
-              <li>• Policy clause matches require verification</li>
-              <li>• All decisions logged with audit trail</li>
+            <h4 className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-4">
+              Human-in-the-Loop Policy
+            </h4>
+            <ul className="text-sm text-[#374151] space-y-3">
+              <li className="flex items-start">
+                <span className="text-[#9CA3AF] mr-2">•</span>
+                <span>No automatic claim denials</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-[#9CA3AF] mr-2">•</span>
+                <span>Fields below 70% confidence require review</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-[#9CA3AF] mr-2">•</span>
+                <span>Policy clause matches require verification</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-[#9CA3AF] mr-2">•</span>
+                <span>All decisions logged with audit trail</span>
+              </li>
             </ul>
           </div>
           
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Explainability Standards</h4>
-            <ul className="text-sm text-gray-600 space-y-2">
-              <li>• Every extracted field has evidence source</li>
-              <li>• Policy clauses include similarity scores</li>
-              <li>• Clear rationale for each decision</li>
-              <li>• Complete audit trail maintained</li>
+            <h4 className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-4">
+              Explainability Standards
+            </h4>
+            <ul className="text-sm text-[#374151] space-y-3">
+              <li className="flex items-start">
+                <span className="text-[#9CA3AF] mr-2">•</span>
+                <span>Every extracted field has evidence source</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-[#9CA3AF] mr-2">•</span>
+                <span>Policy clauses include similarity scores</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-[#9CA3AF] mr-2">•</span>
+                <span>Clear rationale for each decision</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-[#9CA3AF] mr-2">•</span>
+                <span>Complete audit trail maintained</span>
+              </li>
             </ul>
           </div>
         </div>
         
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-          <h4 className="font-medium text-blue-900 mb-2">Retraining & Improvement Loop</h4>
-          <p className="text-sm text-blue-800">
+        <div className="mt-8 pt-6 border-t border-[#E5E7EB]">
+          <h4 className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-2">
+            Retraining & Improvement Loop
+          </h4>
+          <p className="text-sm text-[#374151] leading-relaxed">
             The system continuously learns from human overrides and feedback. When confidence thresholds are consistently exceeded or underperformed, 
             the AI models are retrained with new data to improve accuracy and reduce manual intervention.
           </p>
         </div>
-      </motion.div>
+      </div>
 
       {/* Actions */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center pt-6 border-t border-[#E5E7EB]">
         <button
           onClick={onReset}
-          className="btn-secondary flex items-center space-x-2"
+          className="btn-secondary inline-flex items-center space-x-2"
         >
           <RefreshCw className="w-4 h-4" />
           <span>Process New Claim</span>
         </button>
         
-        <div className="flex space-x-3">
-          <button className="btn-secondary flex items-center space-x-2">
-            <Download className="w-4 h-4" />
-            <span>Export Report</span>
-          </button>
-          <button className="btn-primary flex items-center space-x-2">
-            <Eye className="w-4 h-4" />
-            <span>View Analytics</span>
-          </button>
-        </div>
+        <button className="btn-secondary inline-flex items-center space-x-2">
+          <Download className="w-4 h-4" />
+          <span>Export Report</span>
+        </button>
       </div>
-    </motion.div>
+    </div>
   )
 } 

@@ -14,6 +14,11 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false)
 
   const handleStageChange = (stage: ProcessingStage) => {
+    // Prevent navigation to stages that require claimData if it's not available
+    if ((stage === 'review' || stage === 'decision' || stage === 'dashboard') && !claimData) {
+      // Stay on current stage or go to home
+      return
+    }
     setCurrentStage(stage)
   }
 
@@ -64,9 +69,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white relative">
       <Header currentStage={currentStage} onStageChange={handleStageChange} />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-8 py-16 relative z-10">
         {renderCurrentStage()}
       </main>
     </div>

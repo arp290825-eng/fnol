@@ -50,6 +50,23 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        cloud: {
+          50: '#FFFFFF',
+          100: '#F5F3F0',  // Cloud Dancer - Pantone 11-4201
+          200: '#E8E5E1',
+          300: '#D1CDC7',
+          400: '#B8B3AC',
+          500: '#9A958D',
+        },
+        sky: {
+          50: '#F0F9FF',
+          100: '#E0F2FE',
+          200: '#BAE6FD',
+          300: '#87CEEB',  // Sky blue primary
+          400: '#6BB6D6',
+          500: '#4A9BC4',
+          600: '#2C7DA0',
+        },
         success: {
           50: '#f0fdf4',
           100: '#dcfce7',
@@ -115,6 +132,9 @@ module.exports = {
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.5s ease-out",
         "slide-up": "slide-up 0.3s ease-out",
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
       },
     },
   },

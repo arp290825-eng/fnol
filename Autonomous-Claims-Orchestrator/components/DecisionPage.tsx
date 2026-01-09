@@ -29,6 +29,30 @@ export default function DecisionPage({ claimData, onNextStage, onPreviousStage }
   const [ackSent, setAckSent] = useState(false)
   const [showAcknowledgment, setShowAcknowledgment] = useState(false)
 
+  // Handle null claimData
+  if (!claimData || !claimData.decisionPack) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-7xl mx-auto text-center py-12"
+      >
+        <AlertTriangle className="w-16 h-16 text-warning-500 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">No Claim Data Available</h2>
+        <p className="text-gray-600 mb-6">
+          Please process a claim first before making decisions.
+        </p>
+        <button
+          onClick={onPreviousStage}
+          className="btn-primary flex items-center space-x-2 mx-auto"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Review</span>
+        </button>
+      </motion.div>
+    )
+  }
+
   const { decisionPack, processingTime } = claimData
   const { 
     claimDraft, 
@@ -91,9 +115,11 @@ Claims Team`
       className="max-w-6xl mx-auto"
     >
       {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Decision & Actions</h1>
-        <p className="text-lg text-gray-600">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-[#2D3748] via-[#4A5568] to-[#2D3748] bg-clip-text text-transparent mb-4">
+          Decision & Actions
+        </h1>
+        <p className="text-lg text-[#718096] max-w-2xl mx-auto">
           Review the assembled claim draft and take action
         </p>
       </div>
@@ -106,15 +132,17 @@ Claims Team`
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <div className="flex items-center space-x-2 mb-4">
-            <CheckCircle className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-semibold">Decision Pack</h2>
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-gradient-to-br from-sky-100 to-sky-200 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-sky-600" />
+            </div>
+            <h2 className="text-xl font-bold text-[#2D3748]">Decision Pack</h2>
           </div>
           
           <div className="space-y-4">
             {/* Claim Summary */}
-            <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-              <h3 className="font-medium text-blue-900 mb-2">Claim Summary</h3>
+            <div className="p-5 bg-gradient-to-br from-sky-50 to-sky-100 rounded-xl border-l-4 border-sky-400 shadow-sm">
+              <h3 className="font-semibold text-[#0369A1] mb-3">Claim Summary</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div><span className="font-medium">Policy:</span> {claimDraft.policyId}</div>
                 <div><span className="font-medium">Claimant:</span> {claimDraft.claimantName}</div>
@@ -128,9 +156,9 @@ Claims Team`
             </div>
 
             {/* Evidence Summary */}
-            <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
-              <h3 className="font-medium text-green-900 mb-2">Evidence Summary</h3>
-              <div className="text-sm text-green-800">
+            <div className="p-5 bg-gradient-to-br from-[#ECFDF5] to-[#D1FAE5] rounded-xl border-l-4 border-[#22C55E] shadow-sm">
+              <h3 className="font-semibold text-[#047857] mb-3">Evidence Summary</h3>
+              <div className="text-sm text-[#065F46]">
                 <div className="mb-2">
                   <span className="font-medium">Documents:</span> {documents.length} attached
                 </div>
@@ -145,9 +173,9 @@ Claims Team`
 
             {/* Policy Grounding */}
             {policyGrounding.length > 0 && (
-              <div className="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-400">
-                <h3 className="font-medium text-purple-900 mb-2">Policy Grounding</h3>
-                <div className="text-sm text-purple-800">
+              <div className="p-5 bg-gradient-to-br from-sky-50 to-sky-100 rounded-xl border-l-4 border-sky-400 shadow-sm">
+                <h3 className="font-semibold text-[#0369A1] mb-3">Policy Grounding</h3>
+                <div className="text-sm text-[#075985]">
                   <div className="mb-2">
                     <span className="font-medium">Clauses Found:</span> {policyGrounding.length}
                   </div>
@@ -159,9 +187,9 @@ Claims Team`
             )}
 
             {/* Processing Metrics */}
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-2">Processing Metrics</h3>
-              <div className="text-sm text-gray-700">
+            <div className="p-5 bg-gradient-to-br from-cloud-50 to-cloud-100 rounded-xl border border-cloud-200 shadow-sm">
+              <h3 className="font-semibold text-[#2D3748] mb-3">Processing Metrics</h3>
+              <div className="text-sm text-[#4A5568]">
                 <div className="mb-1">
                   <span className="font-medium">Total Time:</span> {((processingTime || 2000) / 1000).toFixed(1)}s
                 </div>
@@ -183,16 +211,18 @@ Claims Team`
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="flex items-center space-x-2 mb-4">
-            <FileText className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-semibold">Actions</h2>
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-gradient-to-br from-sky-100 to-sky-200 rounded-lg">
+              <FileText className="w-5 h-5 text-sky-600" />
+            </div>
+            <h2 className="text-xl font-bold text-[#2D3748]">Actions</h2>
           </div>
           
           <div className="space-y-4">
             {/* Create Draft in Core */}
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-2">Create Draft in Core System</h3>
-              <p className="text-sm text-gray-600 mb-3">
+            <div className="p-5 border-2 border-cloud-200 rounded-xl bg-white hover:shadow-md transition-shadow">
+              <h3 className="font-semibold text-[#2D3748] mb-2">Create Draft in Core System</h3>
+              <p className="text-sm text-[#718096] mb-4">
                 Send the assembled claim data to the core claims management system
               </p>
               
@@ -220,9 +250,9 @@ Claims Team`
             </div>
 
             {/* Send Acknowledgment */}
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-2">Send Customer Acknowledgment</h3>
-              <p className="text-sm text-gray-600 mb-3">
+            <div className="p-5 border-2 border-cloud-200 rounded-xl bg-white hover:shadow-md transition-shadow">
+              <h3 className="font-semibold text-[#2D3748] mb-2">Send Customer Acknowledgment</h3>
+              <p className="text-sm text-[#718096] mb-4">
                 Generate and send a personalized acknowledgment email to the claimant
               </p>
               
@@ -250,9 +280,9 @@ Claims Team`
             </div>
 
             {/* Download Decision Pack */}
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-2">Download Decision Pack</h3>
-              <p className="text-sm text-gray-600 mb-3">
+            <div className="p-5 border-2 border-cloud-200 rounded-xl bg-white hover:shadow-md transition-shadow">
+              <h3 className="font-semibold text-[#2D3748] mb-2">Download Decision Pack</h3>
+              <p className="text-sm text-[#718096] mb-4">
                 Download a complete record of the decision pack for audit purposes
               </p>
               

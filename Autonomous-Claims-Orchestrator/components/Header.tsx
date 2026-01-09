@@ -51,92 +51,80 @@ export default function Header({ currentStage, onStageChange }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="container mx-auto px-4">
+      <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-50">
+        <div className="container mx-auto px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo and Title */}
+            {/* Logo */}
             <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg">
-                <Zap className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-center w-8 h-8 bg-[#2563EB] rounded">
+                <Zap className="w-4 h-4 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Claims Fast Lane</h1>
-                <p className="text-sm text-gray-500">AI-Powered Claims Orchestrator</p>
+              <div className="flex flex-col">
+                <h1 className="text-lg font-semibold text-[#111827]">
+                  Claims Fast Lane
+                </h1>
+                <p className="text-xs text-[#9CA3AF] font-medium">by AI Mill</p>
               </div>
             </div>
 
-          {/* Navigation */}
-          <nav className="flex items-center space-x-1">
-            {stages.map((stage, index) => {
-              const Icon = stage.icon
-              const isActive = currentStage === stage.id
-              const isCompleted = stages.findIndex(s => s.id === currentStage) > index
-              
-              return (
-                <motion.button
-                  key={stage.id}
-                  onClick={() => onStageChange(stage.id as ProcessingStage)}
-                  className={`
-                    relative flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                    ${isActive 
-                      ? 'bg-blue-600 text-white shadow-md' 
-                      : isCompleted 
-                        ? 'bg-success-50 text-success-700 hover:bg-success-100' 
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                    }
-                  `}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : ''}`} />
-                  <span className="hidden sm:inline">{stage.label}</span>
-                  
-                  {/* Progress indicator */}
-                  {isCompleted && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-success-500 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </motion.button>
-              )
-            })}
-          </nav>
+            {/* Navigation */}
+            <nav className="flex items-center space-x-1">
+              {stages.map((stage, index) => {
+                const Icon = stage.icon
+                const isActive = currentStage === stage.id
+                
+                return (
+                  <button
+                    key={stage.id}
+                    onClick={() => onStageChange(stage.id as ProcessingStage)}
+                    className={`
+                      flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-colors
+                      ${isActive 
+                        ? 'text-[#2563EB] border-b-2 border-[#2563EB]' 
+                        : 'text-[#6B7280] hover:text-[#374151]'
+                      }
+                    `}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden sm:inline">{stage.label}</span>
+                  </button>
+                )
+              })}
+            </nav>
 
-          {/* Status indicators and config */}
-          <div className="flex items-center space-x-4">
-            {/* OpenAI Status */}
-            <div className="flex items-center space-x-2">
+            {/* Secondary controls - visually muted */}
+            <div className="flex items-center space-x-3">
               {hasOpenAIKey ? (
-                <>
-                  <Brain className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm text-blue-600 font-medium">AI Active</span>
-                </>
+                <div className="flex items-center space-x-1.5 text-[#9CA3AF]">
+                  <Brain className="w-3.5 h-3.5" />
+                  <span className="text-xs">AI</span>
+                </div>
               ) : (
-                <>
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm text-amber-600 font-medium">Demo Mode</span>
-                </>
+                <div className="flex items-center space-x-1.5 text-[#9CA3AF]">
+                  <Zap className="w-3.5 h-3.5" />
+                  <span className="text-xs">Demo</span>
+                </div>
               )}
+              <button 
+                onClick={() => setShowConfig(true)}
+                className="p-1.5 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+              {/* Image at the very right */}
+              <div className="flex items-center space-x-2 ml-2">
+                <img 
+                  src="/image.png" 
+                  alt="AI Mill" 
+                  className="h-10 w-auto object-contain"
+                />
+                <span className="text-xs text-[#9CA3AF] font-medium">By AI Mill</span>
+              </div>
             </div>
-
-            {/* System Status */}
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-gray-500">System Online</span>
-            </div>
-
-            {/* Config button */}
-            <button 
-              onClick={() => setShowConfig(true)}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Configure OpenAI API"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
 
     <ConfigModal
       isOpen={showConfig}

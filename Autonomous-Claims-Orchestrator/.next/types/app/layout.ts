@@ -1,4 +1,4 @@
-// File: /Users/genmindz/Code/Autonomous-Claims-Orchestrator /app/layout.tsx
+// File: C:\Users\Aditi singh\Downloads\al-hatab-insights-main-main(keshav)\Autonomous-Claims-Orchestrator\Autonomous-Claims-Orchestrator\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
