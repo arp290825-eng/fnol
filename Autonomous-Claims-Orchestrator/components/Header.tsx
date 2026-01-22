@@ -10,9 +10,12 @@ import {
   BarChart3,
   Zap,
   Settings,
-  Brain
+  Brain,
+  LogOut,
+  User
 } from 'lucide-react'
 import ConfigModal from './ConfigModal'
+import { useAuth } from '@/lib/auth/AuthContext'
 
 interface HeaderProps {
   currentStage: ProcessingStage
@@ -29,6 +32,7 @@ const stages = [
 export default function Header({ currentStage, onStageChange }: HeaderProps) {
   const [showConfig, setShowConfig] = useState(false)
   const [hasOpenAIKey, setHasOpenAIKey] = useState(false)
+  const { user, logout } = useAuth()
 
   useEffect(() => {
     // Check for OpenAI API key
@@ -111,6 +115,22 @@ export default function Header({ currentStage, onStageChange }: HeaderProps) {
                 title="Settings"
               >
                 <Settings className="w-4 h-4" />
+              </button>
+              {/* User info and logout */}
+              {user && (
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#F3F4F6]">
+                  <User className="w-3.5 h-3.5 text-[#6B7280]" />
+                  <span className="text-xs text-[#6B7280] font-medium hidden sm:inline">
+                    {user.name}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={logout}
+                className="p-1.5 text-[#9CA3AF] hover:text-[#EF4444] transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
               </button>
               {/* Image at the very right */}
               <div className="flex items-center space-x-2 ml-2">

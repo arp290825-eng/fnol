@@ -1,17 +1,45 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import HomePage from '@/components/HomePage'
 import ReviewPage from '@/components/ReviewPage'
 import DecisionPage from '@/components/DecisionPage'
 import DashboardPage from '@/components/DashboardPage'
 import { ClaimData, ProcessingStage } from '@/types/claims'
+import { useAuth } from '@/lib/auth/AuthContext'
 
 export default function Home() {
+  const router = useRouter()
+  const { isAuthenticated, loading } = useAuth()
   const [currentStage, setCurrentStage] = useState<ProcessingStage>('home')
   const [claimData, setClaimData] = useState<ClaimData | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, loading, router])
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#64748B]">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render main app if not authenticated
+  if (!isAuthenticated) {
+    return null
+  }
 
   const handleStageChange = (stage: ProcessingStage) => {
     // Prevent navigation to stages that require claimData if it's not available
