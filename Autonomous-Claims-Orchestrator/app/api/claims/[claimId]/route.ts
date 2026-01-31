@@ -11,7 +11,7 @@ export async function GET(
     if (!claimId) {
       return NextResponse.json({ error: 'claimId required' }, { status: 400 })
     }
-    const claim = getProcessedClaimById(decodeURIComponent(claimId))
+    const claim = await getProcessedClaimById(decodeURIComponent(claimId))
     if (!claim) {
       return NextResponse.json({ error: 'Claim not found' }, { status: 404 })
     }

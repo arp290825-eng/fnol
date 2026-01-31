@@ -1,5 +1,5 @@
 /**
- * Re-exports from Dashboard microservice.
+ * Re-exports from Dashboard microservice (Python-backed).
  * @see services/dashboard
  */
 

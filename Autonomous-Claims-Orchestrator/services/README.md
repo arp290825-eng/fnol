@@ -9,7 +9,7 @@ Modular service layer for the Autonomous Claims Orchestrator. Each service has a
 | **email-ingestion** | IMAP sync, FNOL classification, claim ingestion | `syncInbox()` / `email_auto_ingestion.py` |
 | **extraction** | LLM-based extraction from email, docs, images | `runExtraction()` / `extraction.py` |
 | **decision** | Policy grounding, claim draft, decision pack assembly | `buildDecisionPack()` |
-| **dashboard** | Processed claims history, CSV export | `saveProcessedClaim()`, `getProcessedClaimSummaries()`, etc. |
+| **dashboard** | Processed claims history, CSV export (Python) | `dashboard.py` CLI, `saveProcessedClaim()`, etc. |
 | **ingested-claims** | Ingested claims CRUD, deduplication, attachments | `getIngestedClaimById()`, `saveIngestedClaim()`, etc. |
 
 ## Structure
@@ -28,7 +28,8 @@ services/
 │   ├── index.ts              # Policy grounding, decision pack
 │   └── types.ts
 ├── dashboard/
-│   ├── index.ts              # Processed claims, CSV export
+│   ├── index.ts              # Node wrapper (spawns Python)
+│   ├── dashboard.py          # Python implementation
 │   └── types.ts
 └── ingested-claims/
     ├── index.ts              # Ingested claims storage
@@ -46,5 +47,6 @@ services/
 
 - **extraction.py** – Run via `python services/extraction/extraction.py <claim_id>`
 - **email_auto_ingestion.py** – Run via `python services/email-ingestion/email_auto_ingestion.py`
+- **dashboard.py** – Processed claims: `python services/dashboard/dashboard.py list | get <id> | save | csv`
 
 Paths are resolved relative to project root (`data/`, `.env`).

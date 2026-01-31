@@ -5,7 +5,7 @@ import { ClaimData } from '@/types/claims'
 /** GET /api/claims - List all processed claims for dropdown */
 export async function GET() {
   try {
-    const summaries = getProcessedClaimSummaries()
+    const summaries = await getProcessedClaimSummaries()
     return NextResponse.json(summaries)
   } catch (error) {
     console.error('List claims error:', error)
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     if (!body?.decisionPack) {
       return NextResponse.json({ error: 'Invalid claim data' }, { status: 400 })
     }
-    saveProcessedClaim(body)
+    await saveProcessedClaim(body)
     return NextResponse.json({ success: true, claimId: body.claimId })
   } catch (error) {
     console.error('Save claim error:', error)

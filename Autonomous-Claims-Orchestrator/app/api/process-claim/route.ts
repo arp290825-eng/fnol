@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const extraction = await runExtraction(ingestedClaimId)
     const claimData = buildDecisionPack(ingestedClaimId, claim, extraction)
 
-    saveProcessedClaim(claimData as import('@/types/claims').ClaimData)
+    await saveProcessedClaim(claimData as import('@/types/claims').ClaimData)
     return NextResponse.json(claimData)
   } catch (error) {
     console.error('Process claim error:', error)
