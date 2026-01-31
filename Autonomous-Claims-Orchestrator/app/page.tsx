@@ -55,6 +55,18 @@ export default function Home() {
     setCurrentStage('review')
   }
 
+  const handleLoadClaim = async (claimId: string) => {
+    try {
+      const res = await fetch(`/api/claims/${encodeURIComponent(claimId)}`)
+      if (res.ok) {
+        const data = await res.json()
+        setClaimData(data)
+      }
+    } catch (err) {
+      console.error('Failed to load claim:', err)
+    }
+  }
+
   const renderCurrentStage = () => {
     switch (currentStage) {
       case 'home':
@@ -71,6 +83,7 @@ export default function Home() {
             claimData={claimData!}
             onNextStage={() => setCurrentStage('decision')}
             onPreviousStage={() => setCurrentStage('home')}
+            onLoadClaim={handleLoadClaim}
           />
         )
       case 'decision':
@@ -79,6 +92,7 @@ export default function Home() {
             claimData={claimData!}
             onNextStage={() => setCurrentStage('dashboard')}
             onPreviousStage={() => setCurrentStage('review')}
+            onLoadClaim={handleLoadClaim}
           />
         )
       case 'dashboard':

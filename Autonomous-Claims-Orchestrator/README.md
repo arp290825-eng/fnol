@@ -16,6 +16,15 @@ An AI-powered insurance claims processing system featuring real LangGraph agents
 - **Evidence Linking**: Click any extracted field to see source evidence
 - **Policy Grounding**: Explainable policy clause matches with confidence scores
 
+### Microservices Architecture
+- **services/email-ingestion**: IMAP sync, FNOL classification, claim ingestion
+- **services/extraction**: LLM-based extraction from email, documents, images (Vision API)
+- **services/decision**: Policy grounding, claim draft assembly
+- **services/dashboard**: Processed claims history, CSV export
+- **services/ingested-claims**: Ingested claims CRUD, deduplication
+
+See [services/README.md](services/README.md) for details.
+
 ### Demo Data
 - **3 Complete Scenarios**: Auto collision, property water damage, commercial liability
 - **Realistic Documents**: Police reports, repair estimates, medical records, incident reports
@@ -40,11 +49,22 @@ npm install
 ### 2. Configuration
 Either:
 - **Option A**: Click the settings gear in the app header to configure your OpenAI API key
-- **Option B**: Create a `.env.local` file:
+- **Option B**: Create a `.env` or `.env.local` file:
 ```bash
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-4-1106-preview
+
+# SendGrid (for FNOL email auto-ingestion)
+SENDGRID_API_KEY=your_sendgrid_api_key
+MAIL_USERNAME=your_verified_sender@domain.com
 ```
+
+**IMAP Email Ingestion** (FNOL from Gmail/Outlook inbox):
+1. Use a Gmail account with [App Password](https://support.google.com/accounts/answer/185833) (requires 2-Step Verification)
+2. Set in `.env`: `SENDER_EMAIL`, `EMAIL_PASSWORD` (app password)
+3. **Sync Inbox** button runs `email_auto_ingestion.py` to fetch unread emails
+4. Or run manually: `python3 email_auto_ingestion.py`
+5. Emails are ingested with attachments; policy numbers are extracted automatically
 
 ### 3. Run the Application
 ```bash
@@ -87,8 +107,14 @@ Visit `http://localhost:3000`
 - Incident report + medical records
 - Tests: Liability coverage, medical payment processing
 
-### Testing Steps
-1. **Ingest**: Copy email content from scenario folder, drag-drop attachment files
+### FNOL Workflow
+1. **Auto-Ingestion**: FNOL emails sent to your configured address (e.g. `pranay.nath@aimill.in`) are automatically ingested. Attachments are saved to `data/ingested-attachments/`.
+2. **Ingest Page**: Select a policy number from the dropdown (populated from ingested emails). Demo scenarios are auto-seeded on first load.
+3. **Process**: Click "Process Claim Insights" to run AI extraction and policy matching for the selected consumer.
+4. **Review / Decision / Dashboard**: Navigate through stages as before.
+
+### Testing Steps (with Demo Data)
+1. **Ingest**: Select a policy (AC789456123, CL789012345, or HO456789234) from the dropdown
 2. **Review**: Examine extracted fields, click for evidence, review policy matches
 3. **Decision**: See assembled decision pack, trigger mock actions
 4. **Dashboard**: View processing metrics and compliance information

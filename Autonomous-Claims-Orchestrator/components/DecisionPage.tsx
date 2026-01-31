@@ -12,22 +12,28 @@ import {
   ArrowLeft,
   AlertTriangle,
   Check,
-  X
+  X,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
+import ClaimSummaryBar from './ClaimSummaryBar'
 import { ClaimData } from '@/types/claims'
+import { CONFIDENCE } from '@/lib/confidence'
 
 interface DecisionPageProps {
   claimData: ClaimData
   onNextStage: () => void
   onPreviousStage: () => void
+  onLoadClaim?: (claimId: string) => void
 }
 
-export default function DecisionPage({ claimData, onNextStage, onPreviousStage }: DecisionPageProps) {
+export default function DecisionPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }: DecisionPageProps) {
   const [isCreatingDraft, setIsCreatingDraft] = useState(false)
   const [isSendingAck, setIsSendingAck] = useState(false)
   const [draftCreated, setDraftCreated] = useState(false)
   const [ackSent, setAckSent] = useState(false)
   const [showAcknowledgment, setShowAcknowledgment] = useState(false)
+  const [expandedPolicyIds, setExpandedPolicyIds] = useState<Set<string>>(new Set())
 
   // Handle null claimData
   if (!claimData || !claimData.decisionPack) {
@@ -95,7 +101,7 @@ Thank you for reporting your claim. We have received your First Notice of Loss f
 
 ${policyInfo}
 
-Your claim has been assigned claim number: CLM-${Date.now().toString().slice(-8)}
+Your claim has been assigned claim number: ${claimData.claimId || claimDraft?.policyNumber || 'N/A'}
 
 What happens next:
 1. Our team will review the submitted documents and information
@@ -114,6 +120,14 @@ Claims Team`
       animate={{ opacity: 1, y: 0 }}
       className="max-w-6xl mx-auto"
     >
+      <ClaimSummaryBar
+        claimData={claimData}
+        onBack={onPreviousStage}
+        onContinue={onNextStage}
+        continueLabel="Continue"
+        showClaimDropdown
+        onClaimSelect={onLoadClaim}
+      />
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-[#2D3748] via-[#4A5568] to-[#2D3748] bg-clip-text text-transparent mb-4">
@@ -144,11 +158,11 @@ Claims Team`
             <div className="p-5 bg-gradient-to-br from-sky-50 to-sky-100 rounded-xl border-l-4 border-sky-400 shadow-sm">
               <h3 className="font-semibold text-[#0369A1] mb-3">Claim Summary</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="font-medium">Policy:</span> {claimDraft.policyId}</div>
-                <div><span className="font-medium">Claimant:</span> {claimDraft.claimantName}</div>
-                <div><span className="font-medium">Loss Date:</span> {claimDraft.lossDate}</div>
-                <div><span className="font-medium">Type:</span> {claimDraft.lossType}</div>
-                <div><span className="font-medium">Location:</span> {claimDraft.location}</div>
+                <div><span className="font-medium">Policy:</span> {claimDraft.policyNumber || claimDraft.policyId || '—'}</div>
+                <div><span className="font-medium">Claimant:</span> {claimDraft.claimantName || '—'}</div>
+                <div><span className="font-medium">Loss Date:</span> {claimDraft.lossDate || '—'}</div>
+                <div><span className="font-medium">Type:</span> {claimDraft.lossType || '—'}</div>
+                <div><span className="font-medium">Location:</span> {claimDraft.lossLocation || claimDraft.location || claimDraft.propertyAddress || '—'}</div>
                 {claimDraft.deductible && (
                   <div><span className="font-medium">Deductible:</span> ${claimDraft.deductible}</div>
                 )}
@@ -166,22 +180,75 @@ Claims Team`
                   <span className="font-medium">Fields Extracted:</span> {evidence.length} total
                 </div>
                 <div>
-                  <span className="font-medium">High Confidence:</span> {evidence.filter(e => e.confidence >= 0.8).length} fields
+                  <span className="font-medium">High Confidence:</span> {evidence.filter(e => e.confidence >= CONFIDENCE.THRESHOLD_HIGH).length} fields
                 </div>
               </div>
             </div>
 
-            {/* Policy Grounding */}
+            {/* Policy Grounding – expandable clauses */}
             {policyGrounding.length > 0 && (
               <div className="p-5 bg-gradient-to-br from-sky-50 to-sky-100 rounded-xl border-l-4 border-sky-400 shadow-sm">
                 <h3 className="font-semibold text-[#0369A1] mb-3">Policy Grounding</h3>
-                <div className="text-sm text-[#075985]">
-                  <div className="mb-2">
+                <div className="text-sm text-[#075985] mb-3">
+                  <div className="mb-1">
                     <span className="font-medium">Clauses Found:</span> {policyGrounding.length}
                   </div>
                   <div>
                     <span className="font-medium">Coverage:</span> {claimDraft.coverageFound ? 'Confirmed' : 'Under Review'}
                   </div>
+                </div>
+                <div className="space-y-2">
+                  {policyGrounding.map((policy) => {
+                    const isExpanded = expandedPolicyIds.has(policy.clauseId)
+                    const fullContent = policy.content || policy.snippet || ''
+                    const toggle = () => {
+                      setExpandedPolicyIds((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(policy.clauseId)) next.delete(policy.clauseId)
+                        else next.add(policy.clauseId)
+                        return next
+                      })
+                    }
+                    return (
+                      <div key={policy.clauseId} className="rounded-lg border border-sky-200 bg-white overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={toggle}
+                          className="w-full p-3 text-left hover:bg-sky-50/50 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-200"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-xs font-semibold text-[#0C4A6E]">{policy.clauseId}</span>
+                                <span className="text-xs font-medium text-[#047857] bg-[#ECFDF5] px-1.5 py-0.5 rounded">
+                                  {Math.round((policy.score || policy.similarity || 0) * 100)}%
+                                </span>
+                              </div>
+                              <div className="text-xs text-[#0C4A6E] font-medium line-clamp-1">
+                                {policy.title}
+                              </div>
+                              <div className="text-[11px] text-[#0369A1] line-clamp-1 mt-0.5">
+                                {policy.snippet || fullContent.slice(0, 100) + '...'}
+                              </div>
+                            </div>
+                            <span className="flex-shrink-0 text-sky-400">
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </span>
+                          </div>
+                        </button>
+                        {isExpanded && fullContent && (
+                          <div className="px-3 pb-3 pt-0 border-t border-sky-100 bg-sky-50/30">
+                            <div className="text-xs text-[#0C4A6E] leading-relaxed whitespace-pre-wrap">
+                              {fullContent}
+                            </div>
+                            {policy.rationale && (
+                              <p className="text-[10px] text-sky-600 mt-2 italic">{policy.rationale}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}

@@ -2,4 +2,7 @@
 .env.local
 node_modules
 data/users.csv
+data/ingested-claims.json
+data/ingested-attachments/
+data/processed-claims/
 

@@ -8,7 +8,9 @@ import {
   RefreshCw,
   Download
 } from 'lucide-react'
+import ClaimSummaryBar from './ClaimSummaryBar'
 import { ClaimData } from '@/types/claims'
+import { CONFIDENCE } from '@/lib/confidence'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts'
 
 interface DashboardPageProps {
@@ -63,9 +65,9 @@ export default function DashboardPage({ claimData, onReset }: DashboardPageProps
   ]
 
   const confidenceData = [
-    { name: 'High (≥80%)', value: evidence.filter(e => e.confidence >= 0.8).length, color: '#2563EB' },
-    { name: 'Medium (60-79%)', value: evidence.filter(e => e.confidence >= 0.6 && e.confidence < 0.8).length, color: '#93C5FD' },
-    { name: 'Low (<60%)', value: evidence.filter(e => e.confidence < 0.6).length, color: '#DBEAFE' }
+    { name: `High (≥${Math.round(CONFIDENCE.THRESHOLD_HIGH * 100)}%)`, value: evidence.filter(e => e.confidence >= CONFIDENCE.THRESHOLD_HIGH).length, color: '#2563EB' },
+    { name: `Medium (${Math.round(CONFIDENCE.THRESHOLD_MEDIUM * 100)}-${Math.round(CONFIDENCE.THRESHOLD_HIGH * 100) - 1}%)`, value: evidence.filter(e => e.confidence >= CONFIDENCE.THRESHOLD_MEDIUM && e.confidence < CONFIDENCE.THRESHOLD_HIGH).length, color: '#93C5FD' },
+    { name: `Low (<${Math.round(CONFIDENCE.THRESHOLD_MEDIUM * 100)}%)`, value: evidence.filter(e => e.confidence < CONFIDENCE.THRESHOLD_MEDIUM).length, color: '#DBEAFE' }
   ]
 
   const documentTypeData = documents.map(doc => ({
@@ -80,6 +82,7 @@ export default function DashboardPage({ claimData, onReset }: DashboardPageProps
 
   return (
     <div className="max-w-7xl mx-auto">
+      <ClaimSummaryBar claimData={claimData} showActions={false} />
       {/* Page Title */}
       <div className="mb-16">
         <h1 className="text-3xl font-semibold text-[#111827] mb-2">
@@ -342,7 +345,7 @@ export default function DashboardPage({ claimData, onReset }: DashboardPageProps
               </li>
               <li className="flex items-start">
                 <span className="text-[#9CA3AF] mr-2">•</span>
-                <span>Fields below 70% confidence require review</span>
+                <span>Fields below {Math.round(CONFIDENCE.THRESHOLD_MEDIUM * 100)}% confidence require review</span>
               </li>
               <li className="flex items-start">
                 <span className="text-[#9CA3AF] mr-2">•</span>
