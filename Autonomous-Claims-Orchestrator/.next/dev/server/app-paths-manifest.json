@@ -1,0 +1,14 @@
+{
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/claims/[claimId]/route": "app/api/claims/[claimId]/route.js",
+  "/api/claims/route": "app/api/claims/route.js",
+  "/api/ingested-claims/[id]/attachments/route": "app/api/ingested-claims/[id]/attachments/route.js",
+  "/api/ingested-claims/[id]/route": "app/api/ingested-claims/[id]/route.js",
+  "/api/ingested-claims/clear/route": "app/api/ingested-claims/clear/route.js",
+  "/api/ingested-claims/route": "app/api/ingested-claims/route.js",
+  "/api/process-claim/route": "app/api/process-claim/route.js",
+  "/api/sync-inbox/route": "app/api/sync-inbox/route.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/signup/page": "app/signup/page.js"
+}

@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 
-const CSV_FILE_PATH = path.join(process.cwd(), 'data', 'users.csv')
+const CSV_FILE_PATH = path.join(process.cwd(), 'login_credentials.csv')
 
 export interface User {
   email: string

@@ -132,6 +132,7 @@ export interface ProcessingMetrics {
 
 export interface ClaimData {
   claimId?: string
+  ingestedClaimId?: string
   decisionPack: DecisionPack
   auditTrail: AuditEvent[]
   processingMetrics: ProcessingMetrics

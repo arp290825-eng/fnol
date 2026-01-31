@@ -23,7 +23,7 @@ interface HeaderProps {
 }
 
 const stages = [
-  { id: 'home', label: 'Ingest', icon: Home, description: 'Upload FNOL & Attachments' },
+  { id: 'home', label: 'Ingest', icon: Home, description: 'Select Policy & Process' },
   { id: 'review', label: 'Review', icon: Search, description: 'Extraction & Evidence' },
   { id: 'decision', label: 'Decision', icon: CheckCircle, description: 'Draft Claim & Actions' },
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3, description: 'Ops & Metrics' },

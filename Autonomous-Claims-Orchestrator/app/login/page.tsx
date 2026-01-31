@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Zap, Mail, Lock, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/AuthContext'
 
@@ -17,6 +16,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -128,14 +128,9 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                  Password
-                </label>
-                <Link href="/forgot-password" tabIndex={-1} className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
-
-                </Link>
-              </div>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                Password
+              </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                   <Lock className="w-5 h-5" />
@@ -163,6 +158,15 @@ export default function LoginPage() {
                   ) : (
                     <Eye className="w-5 h-5" />
                   )}
+                </button>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-blue-600 hover:text-blue-700 hover:underline focus:outline-none focus:ring-0"
+                >
+                  Forgot password?
                 </button>
               </div>
             </div>
@@ -193,15 +197,30 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Footer */}
-        <div className="text-center">
-          <p className="text-sm text-slate-500">
-            Don't have an account?{' '}
-            <Link href="/signup" className="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
-              Create an account
-            </Link>
-          </p>
-        </div>
+        {/* Forgot Password Modal */}
+        {showForgotPassword && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowForgotPassword(false)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full border border-slate-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Forgot password?</h3>
+              <p className="text-slate-600 text-sm mb-6">
+                Please contact your administrator or IT support to reset your password. For demo access, refer to your organization&apos;s login credentials.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="w-full py-2.5 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
