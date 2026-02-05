@@ -5,4 +5,5 @@ data/users.csv
 data/ingested-claims.json
 data/ingested-attachments/
 data/processed-claims/
+data/drafts/
 

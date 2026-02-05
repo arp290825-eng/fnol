@@ -1,260 +1,125 @@
 # Claims Fast Lane - Autonomous Claims Orchestrator
 
-An AI-powered insurance claims processing system featuring real LangGraph agents and OpenAI integration.
+An AI-powered insurance claims processing system with modular **Python backend** microservices and a **Next.js frontend**.
 
-## 🚀 Features
+## 🏗 Architecture
 
-### Real AI Integration
-- **LangGraph Multi-Agent System**: 4 specialized agents working in orchestrated workflow
-- **OpenAI GPT-4 Integration**: Real AI-powered field extraction and document classification
-- **Fallback Processing**: Graceful degradation to rule-based processing when AI is unavailable
-- **Policy RAG System**: Intelligent policy clause matching with similarity scoring
+### Clear Separation: Backend vs Frontend
 
-### Enterprise UI
-- **Modern Next.js Interface**: Clean, responsive design with Tailwind CSS
-- **Real-time Processing**: Live progress tracking with detailed audit trails
-- **Evidence Linking**: Click any extracted field to see source evidence
-- **Policy Grounding**: Explainable policy clause matches with confidence scores
+```
+├── backend/                    # Python microservices (modular, reusable)
+│   ├── common/                 # Shared config and utilities
+│   ├── extraction/             # LLM extraction (email, docs, Vision API)
+│   ├── decision/               # Policy grounding, decision pack assembly
+│   ├── dashboard/              # Processed claims history, CSV, KPIs
+│   ├── ingested_claims/        # Ingested claims CRUD, deduplication
+│   ├── email_ingestion/        # IMAP sync, FNOL classification
+│   └── process_claim/          # Orchestrator (chains extraction + decision + dashboard)
+│
+├── frontend/                   # Next.js 14 App (UI, API routes as BFF)
+│   ├── app/                    # Pages and API routes
+│   ├── components/             # React components
+│   └── lib/                    # Frontend utilities, auth
+│
+├── data/                       # Shared data (ingested claims, processed claims)
+└── demo-data/                  # Test scenarios
+```
 
-### Microservices Architecture
-- **services/email-ingestion**: IMAP sync, FNOL classification, claim ingestion
-- **services/extraction**: LLM-based extraction from email, documents, images (Vision API)
-- **services/decision**: Policy grounding, claim draft assembly
-- **services/dashboard**: Processed claims history, CSV export
-- **services/ingested-claims**: Ingested claims CRUD, deduplication
+### Backend Microservices (Python)
 
-See [services/README.md](services/README.md) for details.
+Each module in `backend/` is **modular and independently usable** as a microservice:
 
-### Demo Data
-- **3 Complete Scenarios**: Auto collision, property water damage, commercial liability
-- **Realistic Documents**: Police reports, repair estimates, medical records, incident reports
-- **End-to-End Testing**: Complete FNOL emails with attachments for each scenario
+| Module | Description | CLI / Usage |
+|--------|-------------|-------------|
+| **extraction** | LLM-based extraction from email, documents, images (Vision) | `python -m backend.extraction <claim_id>` |
+| **decision** | Policy grounding, claim draft, decision pack assembly | Import `build_decision_pack` |
+| **dashboard** | Processed claims: save, list, get, CSV, KPIs | `python -m backend.dashboard list\|get\|save\|csv\|stats` |
+| **ingested_claims** | Ingested claims CRUD, deduplication, attachments | `python -m backend.ingested_claims list\|get\|clear` |
+| **email_ingestion** | IMAP sync, FNOL classification, claim ingestion | `python -m backend.email_ingestion` |
+| **process_claim** | End-to-end orchestration | `python -m backend.process_claim <ingested_claim_id>` |
 
-## 🛠 Tech Stack
+### Frontend (Next.js)
 
-- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion
-- **AI Framework**: LangGraph (TypeScript), OpenAI GPT-4
-- **Components**: shadcn/ui, Lucide React, Recharts
-- **Processing**: Real multi-agent orchestration with typed state management
+- **App Router** with TypeScript, Tailwind CSS, Framer Motion
+- **API routes** act as BFF (Backend for Frontend), spawning Python services
+- **UI components**: Home, Review, Decision, Dashboard pages
 
 ## 🚀 Quick Start
 
 ### 1. Installation
+
 ```bash
 git clone <repository-url>
 cd Autonomous-Claims-Orchestrator
-npm install
+
+# Install frontend dependencies
+npm run install:frontend
+
+# Install Python backend dependencies
+pip install -r backend/requirements.txt
 ```
 
 ### 2. Configuration
-Either:
-- **Option A**: Click the settings gear in the app header to configure your OpenAI API key
-- **Option B**: Create a `.env` or `.env.local` file:
+
+Create a `.env` file in the **project root** (or copy from `env.example`):
+
 ```bash
 OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4-1106-preview
+OPENAI_MODEL=gpt-4o
 
-# SendGrid (for FNOL email auto-ingestion)
+# IMAP (for Sync Inbox)
+SENDER_EMAIL=your_email@gmail.com
+EMAIL_PASSWORD=your_app_password
+
+# SendGrid (optional, for inbound webhook)
 SENDGRID_API_KEY=your_sendgrid_api_key
-MAIL_USERNAME=your_verified_sender@domain.com
 ```
 
-**IMAP Email Ingestion** (FNOL from Gmail/Outlook inbox):
-1. Use a Gmail account with [App Password](https://support.google.com/accounts/answer/185833) (requires 2-Step Verification)
-2. Set in `.env`: `SENDER_EMAIL`, `EMAIL_PASSWORD` (app password)
-3. **Sync Inbox** button runs `email_auto_ingestion.py` to fetch unread emails
-4. Or run manually: `python3 email_auto_ingestion.py`
-5. Emails are ingested with attachments; policy numbers are extracted automatically
-
 ### 3. Run the Application
+
 ```bash
 npm run dev
 ```
+
 Visit `http://localhost:3000`
+
+> The dev server runs from `frontend/`. API routes invoke Python backend services via subprocess.
 
 ## 🎮 Using the Demo
 
 ### Demo Modes
 
-#### 🤖 AI Mode (With OpenAI API Key)
-- Real GPT-4 powered field extraction
-- Intelligent document classification
-- Advanced policy clause matching
-- High accuracy confidence scoring
+- **AI Mode** (with OpenAI API key): Real GPT-4 extraction, document classification, policy grounding
+- **Demo Mode** (no key): Graceful fallback; demo scenarios work for UI testing
 
-#### ⚡ Demo Mode (No API Key)
-- Rule-based extraction and classification
-- Faster processing with simulated results
-- Perfect for demonstrations and UI testing
+### Test Scenarios
 
-### Available Test Scenarios
-
-#### 1. Auto Collision Claim
-**Location**: `demo-data/scenarios/auto-collision/`
-- Rear-end collision at intersection
-- Police report + repair estimate + damage photos
-- Tests: Vehicle info extraction, collision coverage matching
-
-#### 2. Property Water Damage
-**Location**: `demo-data/scenarios/property-water-damage/`
-- Storm damage causing roof leak
-- Emergency repair invoice + water extraction estimate
-- Tests: Property damage assessment, storm coverage
-
-#### 3. Commercial Liability
-**Location**: `demo-data/scenarios/commercial-liability/`
-- Restaurant slip and fall incident
-- Incident report + medical records
-- Tests: Liability coverage, medical payment processing
+1. **Auto Collision** – `demo-data/scenarios/auto-collision/`
+2. **Property Water Damage** – `demo-data/scenarios/property-water-damage/`
+3. **Commercial Liability** – `demo-data/scenarios/commercial-liability/`
 
 ### FNOL Workflow
-1. **Auto-Ingestion**: FNOL emails sent to your configured address (e.g. `pranay.nath@aimill.in`) are automatically ingested. Attachments are saved to `data/ingested-attachments/`.
-2. **Ingest Page**: Select a policy number from the dropdown (populated from ingested emails). Demo scenarios are auto-seeded on first load.
-3. **Process**: Click "Process Claim Insights" to run AI extraction and policy matching for the selected consumer.
-4. **Review / Decision / Dashboard**: Navigate through stages as before.
 
-### Testing Steps (with Demo Data)
-1. **Ingest**: Select a policy (AC789456123, CL789012345, or HO456789234) from the dropdown
-2. **Review**: Examine extracted fields, click for evidence, review policy matches
-3. **Decision**: See assembled decision pack, trigger mock actions
-4. **Dashboard**: View processing metrics and compliance information
+1. **Sync Inbox** – Fetch FNOL emails from IMAP (Gmail/Outlook)
+2. **Select Policy** – Choose from ingested claims dropdown
+3. **Process** – Run AI extraction and policy matching
+4. **Review / Decision / Dashboard** – Navigate through stages
 
-## 🏗 Architecture
+## 🛠 Tech Stack
 
-### LangGraph Agent Workflow
-```
-Ingestion Agent → Extraction Agent → Policy Agent → Assembler Agent
-     ↓               ↓                ↓              ↓
-  OCR/Classify    Extract Fields   RAG Search    Decision Pack
-```
+- **Backend**: Python 3.9+, OpenAI API
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, Framer Motion
+- **Data**: JSON files in `data/` (ingested-claims, processed-claims)
 
-### Agent Responsibilities
+## 📁 Backend Coding Conventions
 
-1. **Ingestion Agent**
-   - Email normalization
-   - Document OCR simulation
-   - AI-powered document classification
+All Python files in `backend/` follow:
 
-2. **Extraction Agent**
-   - Structured field extraction using OpenAI
-   - Evidence generation with source linking
-   - Confidence scoring and validation
-
-3. **Policy Agent**
-   - RAG-based policy clause search
-   - Similarity scoring and ranking
-   - Coverage determination
-
-4. **Assembler Agent**
-   - Decision pack assembly
-   - Risk assessment
-   - Recommendation generation
-
-### Data Flow
-```
-FNOL Email + Attachments
-    ↓
-Multi-Agent Processing
-    ↓
-Structured Claim Data + Evidence + Policy Matches
-    ↓
-Decision Pack + Audit Trail
-```
-
-## 🔧 Configuration Options
-
-### OpenAI Integration
-- **Model**: Configure GPT model (default: gpt-4-1106-preview)
-- **Temperature**: Adjust randomness (default: 0.1 for consistency)
-- **Timeout**: API call timeout (default: 30 seconds)
-- **Retries**: Max retry attempts (default: 2)
-
-### Processing Tuning
-- **Confidence Threshold**: Minimum confidence for auto-processing (default: 0.6)
-- **Field Masking**: PII protection settings (emails, phones, policy numbers)
-- **Policy Scoring**: RAG similarity thresholds
-
-## 📊 Features Demonstrated
-
-### AI Capabilities
-- ✅ Real-time field extraction from unstructured text
-- ✅ Document type classification with confidence scoring  
-- ✅ Policy clause matching using semantic search
-- ✅ Evidence linking and source attribution
-- ✅ Risk assessment and recommendation generation
-
-### Enterprise Features
-- ✅ PII masking and data protection
-- ✅ Comprehensive audit trails
-- ✅ Confidence-based processing decisions
-- ✅ Human-in-the-loop workflow design
-- ✅ Graceful error handling and fallbacks
-
-### UX Excellence
-- ✅ Real-time processing visualization
-- ✅ Interactive evidence exploration
-- ✅ Policy clause explainability
-- ✅ Mobile-responsive design
-- ✅ Accessibility considerations
-
-## 🔍 Monitoring & Observability
-
-### Real-time Metrics
-- Processing time per agent
-- Field extraction accuracy
-- Policy match confidence
-- Error rates and fallback usage
-
-### Audit Trail
-- Complete processing history
-- Agent execution times
-- Model versions used
-- Fallback events
-
-### Compliance Features
-- PII masking logs
-- Processing decision rationale
-- Evidence preservation
-- Regulatory reporting readiness
-
-## 🛡 Security & Privacy
-
-### Data Protection
-- Automatic PII masking (emails, phones, policy numbers)
-- No raw customer data in vector stores
-- Configurable redaction rules
-- Secure API key handling
-
-### Compliance
-- Complete audit trails
-- Evidence preservation
-- Processing transparency
-- Regulatory alignment
-
-## 🚀 Production Considerations
-
-### Scaling
-- Stateless agent design for horizontal scaling
-- Configurable timeouts and retry logic
-- Resource-efficient processing
-- Graceful degradation capabilities
-
-### Integration
-- RESTful API endpoints
-- Webhook support for external systems
-- Standard data formats (JSON)
-- Event-driven architecture ready
-
-### Monitoring
-- Health check endpoints
-- Performance metrics
-- Error tracking
-- Business intelligence integration
+- **PEP 8** style
+- Type hints where appropriate
+- Modular design for reuse as standalone microservices
+- CLI entry points via `python -m backend.<module>`
 
 ## 📝 License
 
-This is a demonstration project showcasing AI-powered claims processing capabilities.
-
-## 🤝 Contributing
-
-This project demonstrates enterprise-grade AI implementation patterns for insurance technology.
+Demonstration project for AI-powered claims processing in insurance technology.

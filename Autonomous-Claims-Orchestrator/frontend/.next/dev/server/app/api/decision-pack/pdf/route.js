@@ -1,0 +1,12 @@
+var R=require("../../../../chunks/[turbopack]_runtime.js")("server/app/api/decision-pack/pdf/route.js")
+R.c("server/chunks/db418_next_2c062c8d._.js")
+R.c("server/chunks/db418_html2canvas_dist_html2canvas_esm_7905ef8b.js")
+R.c("server/chunks/db418_core-js_4566a268._.js")
+R.c("server/chunks/db418_canvg_lib_index_cjs_a6d2faac._.js")
+R.c("server/chunks/9792e_pako_dist_pako_esm_mjs_e1e4035d._.js")
+R.c("server/chunks/db418_jspdf_dist_jspdf_node_min_228551dc.js")
+R.c("server/chunks/db418_58c1899d._.js")
+R.c("server/chunks/[root-of-the-server]__7d9b3b99._.js")
+R.c("server/chunks/2a0c9_frontend__next-internal_server_app_api_decision-pack_pdf_route_actions_c56da891.js")
+R.m("[project]/Autonomous-Claims-Orchestrator/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/Autonomous-Claims-Orchestrator/frontend/app/api/decision-pack/pdf/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)")
+module.exports=R.m("[project]/Autonomous-Claims-Orchestrator/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/Autonomous-Claims-Orchestrator/frontend/app/api/decision-pack/pdf/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)").exports

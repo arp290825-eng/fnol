@@ -1,0 +1,13 @@
+[00:00:00.530] Server  LOG     ✓ Ready in 308ms
+[00:00:01.368] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[03:34:13.881] Server  ERROR   Sync inbox error: Error: {
+  "success": false,
+  "ingested": 0,
+  "scanned": 0,
+  "skippedNoFnol": 0,
+  "skippedDuplicate": 0,
+  "errors": [
+    "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1006)"
+  ]
+}
+
