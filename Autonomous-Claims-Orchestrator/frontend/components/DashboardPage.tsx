@@ -385,7 +385,7 @@ export default function DashboardPage({ claimData, onReset }: DashboardPageProps
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-[#F1F5F9]">
-                  <span className="text-sm text-[#64748B]">Policy Matches</span>
+                  <span className="text-sm text-[#64748B]">Policy Clause Matches</span>
                   <span className="text-sm font-semibold text-[#0F172A]">
                     {policyGrounding.length}
                   </span>
@@ -448,7 +448,7 @@ export default function DashboardPage({ claimData, onReset }: DashboardPageProps
                           {c.claimantName || c.policyNumber || c.claimId}
                         </p>
                         <p className="text-xs text-[#64748B]">
-                          {c.lossType} · {c.policyMatches} policy match{c.policyMatches !== 1 ? 'es' : ''}
+                          {c.lossType} · {c.policyMatches} policy clause match{c.policyMatches !== 1 ? 'es' : ''}
                         </p>
                       </div>
                       <span className="text-xs text-[#94A3B8] flex-shrink-0 ml-2">

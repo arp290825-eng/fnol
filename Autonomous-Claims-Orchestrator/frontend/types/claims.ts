@@ -93,12 +93,45 @@ export interface ClaimDraft {
   confidence?: number
 }
 
+export interface PolicyHolderInfo {
+  customer_id?: string
+  first_name?: string
+  last_name?: string
+  full_name?: string
+  email_id?: string
+  phone_number?: string
+  address_line1?: string
+  address_line2?: string
+  city?: string
+  state?: string
+  postal_code?: string
+  country?: string
+  customer_since?: string
+  customer_status?: string
+  risk_profile?: string
+  credit_score?: number
+  policy_number?: string
+  policy_type?: string
+  policy_status?: string
+  effective_date?: string
+  expiration_date?: string
+  premium_amount?: number
+  premium_frequency?: string
+  payment_status?: string
+  total_coverage_limit?: number
+  aggregate_deductible?: number
+  carrier_name?: string
+  agent_name?: string
+  agent_contact?: string
+}
+
 export interface DecisionPack {
   id?: string
   claimDraft: ClaimDraft
   evidence: FieldEvidence[]
   documents: Document[]
   policyGrounding: PolicyHit[]
+  policyHolderInfo?: PolicyHolderInfo
   audit: AuditEvent[]
   evidenceSummary?: {
     totalFields: number

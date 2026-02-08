@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Mail,
   FileText,
@@ -27,6 +27,7 @@ interface IngestedClaim {
   from: string
   to: string
   subject: string
+  /** Original email body text - NOT extracted document content */
   emailBody: string
   attachments: Array<{ name: string; path: string; size: number; mimeType: string }>
   createdAt: string
@@ -51,28 +52,23 @@ export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing
   const [processingSteps, setProcessingSteps] = useState<string[]>([])
   const [currentStep, setCurrentStep] = useState('')
 
-  useEffect(() => {
-    fetchPolicyOptions()
-  }, [])
-
-  const handleClearClaims = async () => {
-    if (!confirm('Clear all ingested claims? This cannot be undone.')) return
-    setClearingClaims(true)
+  const fetchPolicyOptions = async () => {
+    setLoadingPolicies(true)
     setError('')
-    setSyncMessage('')
     try {
-      const res = await fetch('/api/ingested-claims/clear', { method: 'POST' })
-      if (!res.ok) throw new Error('Clear failed')
-      setSelectedClaim(null)
-      await fetchPolicyOptions()
+      const res = await fetch('/api/ingested-claims')
+      if (!res.ok) throw new Error('Failed to load claims')
+      const data = await res.json()
+      setPolicyOptions(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to clear')
+      setError('Unable to load ingested claims. Please try again.')
+      setPolicyOptions([])
     } finally {
-      setClearingClaims(false)
+      setLoadingPolicies(false)
     }
   }
 
-  const handleSyncInbox = async () => {
+  const handleSyncInbox = useCallback(async () => {
     setSyncingInbox(true)
     setError('')
     setSyncMessage('')
@@ -100,23 +96,34 @@ export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing
     } finally {
       setSyncingInbox(false)
     }
-  }
+  }, [])
 
-  const fetchPolicyOptions = async () => {
-    setLoadingPolicies(true)
+  useEffect(() => {
+    // Load existing policies first, then auto-sync inbox on page load
+    const initialize = async () => {
+      await fetchPolicyOptions()
+      await handleSyncInbox()
+    }
+    initialize()
+  }, [handleSyncInbox])
+
+  const handleClearClaims = async () => {
+    if (!confirm('Clear all ingested claims? This cannot be undone.')) return
+    setClearingClaims(true)
     setError('')
+    setSyncMessage('')
     try {
-      const res = await fetch('/api/ingested-claims')
-      if (!res.ok) throw new Error('Failed to load claims')
-      const data = await res.json()
-      setPolicyOptions(data)
+      const res = await fetch('/api/ingested-claims/clear', { method: 'POST' })
+      if (!res.ok) throw new Error('Clear failed')
+      setSelectedClaim(null)
+      await fetchPolicyOptions()
     } catch (err) {
-      setError('Unable to load ingested claims. Please try again.')
-      setPolicyOptions([])
+      setError(err instanceof Error ? err.message : 'Failed to clear')
     } finally {
-      setLoadingPolicies(false)
+      setClearingClaims(false)
     }
   }
+
 
   const handleSelectPolicy = async (claimId: string) => {
     if (!claimId) {
@@ -217,18 +224,15 @@ export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing
           </div>
         </div>
 
-        {/* Action Bar: Sync Inbox & Clear All */}
+        {/* Action Bar: Auto Sync Status & Clear All */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 relative z-10">
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleSyncInbox}
-              disabled={syncingInbox || loadingPolicies}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#6366F1] hover:bg-[#4F46E5] rounded-xl shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Fetch FNOL emails from inbox"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncingInbox ? 'animate-spin' : ''}`} />
-              Sync Inbox
-            </button>
+            {syncingInbox && (
+              <div className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-[#6366F1] bg-white border border-[#E2E8F0] rounded-xl">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Auto-syncing inbox...
+              </div>
+            )}
             <button
               onClick={handleClearClaims}
               disabled={clearingClaims || loadingPolicies || policyOptions.length === 0}
@@ -302,7 +306,7 @@ export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing
                     </div>
                   ) : selectedClaim ? (
                     <pre className="w-full p-4 bg-white/60 rounded-xl border border-[#E2E8F0] text-sm text-[#334155] whitespace-pre-wrap font-sans leading-relaxed">
-                      {selectedClaim.emailBody}
+                      {selectedClaim.emailBody || 'No email content available'}
                     </pre>
                   ) : (
                     <div className="h-full flex items-center justify-center p-8 border-2 border-dashed border-[#E2E8F0] rounded-xl bg-white/30 text-[#94A3B8] text-sm text-center">

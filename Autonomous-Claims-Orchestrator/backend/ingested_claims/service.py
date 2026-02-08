@@ -250,6 +250,7 @@ def save_ingested_claim(
         "from": from_addr,
         "to": to_addr,
         "subject": subject,
+        # emailBody must always be the original email body text, NOT extracted document content
         "emailBody": email_body,
         "attachments": attachments,
         "createdAt": _iso_now(int(time.time() * 1000)),
@@ -259,20 +260,33 @@ def save_ingested_claim(
         claim["messageId"] = message_id
 
     claims = _get_claims_data()
+    
+    # If this is a real email (not demo), remove all demo claims
+    if source in ("imap", "sendgrid"):
+        claims = [c for c in claims if c.get("source") != "demo"]
+    
     claims.insert(0, claim)
     _save_claims_data(claims)
     return claim
 
 
 def get_all_ingested_claims() -> List[Dict[str, Any]]:
-    """Get all ingested claims. Seeds demo if empty."""
+    """Get all ingested claims. Seeds demo only if no real emails exist."""
     claims = _get_claims_data()
-    if not claims:
+    
+    # Check if there are any real emails (imap or sendgrid)
+    has_real = any(c.get("source") in ("imap", "sendgrid") for c in claims)
+    
+    # Only seed demo claims if there are NO real emails
+    if not has_real and not claims:
         _seed_demo_claims()
         claims = _get_claims_data()
-    has_real = any(c.get("source") in ("imap", "sendgrid") for c in claims)
+    
+    # If real emails exist, filter out demo claims
     if has_real:
         return [c for c in claims if c.get("source") != "demo"]
+    
+    # Otherwise return all claims (including demo if they exist)
     return claims
 
 
@@ -283,12 +297,20 @@ def get_ingested_claim_by_id(claim_id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_policy_numbers() -> List[Dict[str, str]]:
-    """Get policy numbers for dropdown."""
+    """Get policy numbers for dropdown. Only shows demo if no real emails exist."""
     claims = _get_claims_data()
-    if not claims:
+    
+    # Check if there are any real emails (imap or sendgrid)
+    has_real = any(c.get("source") in ("imap", "sendgrid") for c in claims)
+    
+    # Only seed demo claims if there are NO real emails
+    if not has_real and not claims:
         _seed_demo_claims()
         claims = _get_claims_data()
-    has_real = any(c.get("source") in ("imap", "sendgrid") for c in claims)
+        # Re-check after seeding
+        has_real = any(c.get("source") in ("imap", "sendgrid") for c in claims)
+    
+    # If real emails exist, filter out demo claims
     to_show = [c for c in claims if c.get("source") != "demo"] if has_real else claims
     return [
         {"id": c["id"], "policyNumber": c["policyNumber"], "subject": c["subject"]}

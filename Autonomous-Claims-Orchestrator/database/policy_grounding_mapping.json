@@ -1,0 +1,378 @@
+{
+  "database_schema_mapping": {
+    "description": "JSON mapping to correlate Customer DB, Policy DB, and Policy Details DB for auto-resolution desk",
+    "version": "1.0",
+    "last_updated": "2024-01-20",
+    
+    "database_relationships": {
+      "customer_to_policies": {
+        "relationship_type": "One-to-Many",
+        "description": "One customer can have multiple policies",
+        "foreign_key": "Policies.customer_id -> Customers.customer_id",
+        "join_query": "SELECT * FROM Customers c INNER JOIN Policies p ON c.customer_id = p.customer_id WHERE c.customer_id = ?"
+      },
+      "policy_to_details": {
+        "relationship_type": "One-to-Many",
+        "description": "One policy can have multiple coverage details/clauses",
+        "foreign_key": "PolicyDetails.policy_number -> Policies.policy_number",
+        "join_query": "SELECT * FROM Policies p INNER JOIN PolicyDetails pd ON p.policy_number = pd.policy_number WHERE p.policy_number = ?"
+      },
+      "full_hierarchy": {
+        "relationship_type": "Customer -> Policies -> PolicyDetails",
+        "description": "Complete hierarchy from customer to policy to coverage details",
+        "join_query": "SELECT c.*, p.*, pd.* FROM Customers c INNER JOIN Policies p ON c.customer_id = p.customer_id INNER JOIN PolicyDetails pd ON p.policy_number = pd.policy_number WHERE p.policy_number = ?"
+      }
+    },
+    
+    "policy_grounding_workflow": {
+      "step_1_customer_verification": {
+        "description": "Verify customer exists and retrieve customer information",
+        "query": "SELECT * FROM Customers WHERE customer_id = ? OR email_id = ? OR phone_number = ?",
+        "required_fields": ["customer_id", "first_name", "last_name", "email_id", "phone_number", "customer_status"],
+        "validation_rules": {
+          "customer_status": "Must be 'ACTIVE'",
+          "customer_since": "Customer must have been active for at least 30 days"
+        }
+      },
+      
+      "step_2_policy_retrieval": {
+        "description": "Retrieve all policies for the customer",
+        "query": "SELECT * FROM Policies WHERE customer_id = ? AND policy_status = 'ACTIVE' AND expiration_date >= CURDATE()",
+        "required_fields": ["policy_number", "policy_type", "effective_date", "expiration_date", "policy_status", "is_active"],
+        "validation_rules": {
+          "policy_status": "Must be 'ACTIVE'",
+          "effective_date": "Must be <= claim_date",
+          "expiration_date": "Must be >= claim_date",
+          "payment_status": "Should be 'CURRENT' or 'PAST_DUE' (within grace period)"
+        }
+      },
+      
+      "step_3_policy_details_extraction": {
+        "description": "Extract all coverage details and clauses for the specific policy",
+        "query": "SELECT * FROM PolicyDetails WHERE policy_number = ? AND is_active = TRUE AND effective_from <= ? AND (effective_to IS NULL OR effective_to >= ?)",
+        "required_fields": ["coverage_code", "coverage_name", "limit_per_occurrence", "deductible_amount", "clause_text", "exclusions", "inclusions"],
+        "validation_rules": {
+          "is_active": "Must be TRUE",
+          "effective_from": "Must be <= claim_date",
+          "effective_to": "Must be NULL or >= claim_date"
+        }
+      },
+      
+      "step_4_coverage_matching": {
+        "description": "Match claim type to applicable coverage",
+        "coverage_mapping": {
+          "AUTO_CLAIMS": {
+            "collision": ["COLL", "Collision Coverage"],
+            "comprehensive": ["COMP", "Comprehensive Coverage"],
+            "bodily_injury": ["BI", "Bodily Injury Liability"],
+            "property_damage": ["PD", "Property Damage Liability"],
+            "uninsured_motorist": ["UMBI", "Uninsured/Underinsured Motorist"]
+          },
+          "HOME_CLAIMS": {
+            "dwelling_damage": ["DWELLING", "Dwelling Coverage"],
+            "personal_property": ["PERSONAL_PROPERTY", "Personal Property Coverage"],
+            "liability": ["LIABILITY", "Personal Liability Coverage"],
+            "loss_of_use": ["LOSS_OF_USE", "Loss of Use Coverage"],
+            "medical_payments": ["MED_PAY", "Medical Payments to Others"]
+          },
+          "COMMERCIAL_CLAIMS": {
+            "general_liability": ["GEN_LIABILITY", "General Liability"],
+            "property_damage": ["PROPERTY", "Commercial Property"],
+            "business_interruption": ["BIZ_INT", "Business Interruption"]
+          }
+        }
+      },
+      
+      "step_5_clause_validation": {
+        "description": "Validate claim against policy clauses, exclusions, and limitations",
+        "validation_checks": [
+          {
+            "check_name": "Exclusions Check",
+            "description": "Verify claim does not fall under any exclusions",
+            "query": "SELECT exclusions FROM PolicyDetails WHERE policy_number = ? AND coverage_code = ?",
+            "action": "If claim matches exclusion, confidence_score -= 0.6"
+          },
+          {
+            "check_name": "Coverage Limits Check",
+            "description": "Verify claim amount is within coverage limits",
+            "query": "SELECT limit_per_occurrence, aggregate_limit FROM PolicyDetails WHERE policy_number = ? AND coverage_code = ?",
+            "action": "If claim exceeds limit, confidence_score -= 0.3, recommend partial approval"
+          },
+          {
+            "check_name": "Deductible Application",
+            "description": "Calculate deductible and net claim amount",
+            "formula": "net_claim_amount = claim_amount - deductible_amount",
+            "action": "If claim_amount < deductible_amount, confidence_score -= 0.1"
+          },
+          {
+            "check_name": "Terms and Conditions Check",
+            "description": "Verify claim meets all terms and conditions",
+            "query": "SELECT terms_conditions, special_conditions FROM PolicyDetails WHERE policy_number = ? AND coverage_code = ?",
+            "action": "Review conditions and adjust confidence_score accordingly"
+          }
+        ]
+      },
+      
+      "step_6_confidence_scoring": {
+        "description": "Calculate confidence score for auto-resolution",
+        "scoring_algorithm": {
+          "base_score": 1.0,
+          "scoring_components": {
+            "policy_active": {
+              "weight": 0.25,
+              "max_score": 100,
+              "calculation": "IF policy_status = 'ACTIVE' AND expiration_date >= claim_date AND effective_date <= claim_date THEN 100 ELSE 0"
+            },
+            "coverage_applicable": {
+              "weight": 0.30,
+              "max_score": 100,
+              "calculation": "IF coverage_code matches claim_type AND is_active = TRUE THEN 100 ELSE 0"
+            },
+            "clause_compliance": {
+              "weight": 0.25,
+              "max_score": 100,
+              "calculation": "IF no exclusions triggered AND within limits AND terms met THEN 100 ELSE (100 - violations * 20)"
+            },
+            "documentation_completeness": {
+              "weight": 0.20,
+              "max_score": 100,
+              "calculation": "Based on required documentation provided (police report, photos, estimates, etc.)"
+            }
+          },
+          "deductions": {
+            "policy_inactive": -1.0,
+            "policy_expired": -1.0,
+            "coverage_not_found": -0.5,
+            "claim_exceeds_limit": -0.3,
+            "exclusion_found": -0.6,
+            "within_deductible_only": -0.1,
+            "missing_documentation": -0.15,
+            "past_reporting_deadline": -0.2
+          },
+          "final_formula": "confidence_score = (policy_active * 0.25) + (coverage_applicable * 0.30) + (clause_compliance * 0.25) + (documentation * 0.20) + deductions",
+          "thresholds": {
+            "auto_approve": {
+              "min_score": 0.90,
+              "recommendation": "AUTO_APPROVE",
+              "action": "Proceed with claim approval, apply deductible, process payment"
+            },
+            "manual_review": {
+              "min_score": 0.75,
+              "max_score": 0.89,
+              "recommendation": "MANUAL_REVIEW",
+              "action": "Flag for adjuster review, provide reasoning, gather additional documentation"
+            },
+            "likely_denial": {
+              "min_score": 0.50,
+              "max_score": 0.74,
+              "recommendation": "LIKELY_DENIAL",
+              "action": "Review for exceptions, may require escalation, detailed explanation needed"
+            },
+            "auto_deny": {
+              "max_score": 0.49,
+              "recommendation": "AUTO_DENY",
+              "action": "Deny claim, provide detailed explanation, offer appeal process"
+            }
+          }
+        }
+      }
+    },
+    
+    "example_scenarios": {
+      "scenario_1_auto_collision": {
+        "claim_id": "CLM-2024-001",
+        "policy_number": "AC789456123",
+        "customer_id": "CUST001",
+        "claim_type": "Collision",
+        "claim_date": "2024-03-15",
+        "claim_amount": 4850.00,
+        "claim_description": "Vehicle collision at intersection, passenger side damage",
+        "policy_grounding_result": {
+          "customer_verified": true,
+          "customer_name": "Sarah Johnson",
+          "policy_found": true,
+          "policy_status": "ACTIVE",
+          "policy_effective": "2024-01-01",
+          "policy_expires": "2024-12-31",
+          "coverage_applicable": true,
+          "coverage_code": "COLL",
+          "coverage_name": "Collision Coverage",
+          "coverage_limit": null,
+          "deductible_amount": 375.00,
+          "claim_within_limit": true,
+          "exclusions_triggered": false,
+          "exclusions_check": "No exclusions apply - not racing, not intentional, not commercial use",
+          "deductible_applicable": true,
+          "net_claim_amount": 4475.00,
+          "calculation": "Claim Amount (4850.00) - Deductible (375.00) = 4475.00",
+          "confidence_score": 0.95,
+          "score_breakdown": {
+            "policy_active": 100,
+            "coverage_applicable": 100,
+            "clause_compliance": 95,
+            "documentation_completeness": 85
+          },
+          "recommendation": "AUTO_APPROVE",
+          "approved_amount": 4475.00,
+          "reasoning": "Policy is active, collision coverage applies, claim is within limits, deductible applied, no exclusions triggered, documentation is complete"
+        }
+      },
+      
+      "scenario_2_home_water_damage": {
+        "claim_id": "CLM-2024-002",
+        "policy_number": "HO456789234",
+        "customer_id": "CUST002",
+        "claim_type": "Dwelling Damage / Water Damage",
+        "claim_date": "2024-03-18",
+        "claim_amount": 8500.00,
+        "claim_description": "Roof damage from storm, water intrusion, interior damage",
+        "policy_grounding_result": {
+          "customer_verified": true,
+          "customer_name": "Robert Chen",
+          "policy_found": true,
+          "policy_status": "ACTIVE",
+          "policy_effective": "2024-01-01",
+          "policy_expires": "2025-12-31",
+          "coverage_applicable": true,
+          "coverage_code": "DWELLING",
+          "coverage_name": "Dwelling Coverage",
+          "coverage_limit": 350000.00,
+          "deductible_amount": 1000.00,
+          "claim_within_limit": true,
+          "exclusions_triggered": false,
+          "exclusions_check": "Water damage from burst pipes or storm is covered. Must verify not flood-related (flood is excluded).",
+          "deductible_applicable": true,
+          "net_claim_amount": 7500.00,
+          "calculation": "Claim Amount (8500.00) - Deductible (1000.00) = 7500.00",
+          "confidence_score": 0.88,
+          "score_breakdown": {
+            "policy_active": 100,
+            "coverage_applicable": 100,
+            "clause_compliance": 85,
+            "documentation_completeness": 80
+          },
+          "recommendation": "MANUAL_REVIEW",
+          "approved_amount": 7500.00,
+          "reasoning": "Policy is active, dwelling coverage applies, claim is within limits. However, need to verify that damage is from storm (covered) and not flood (excluded). Requires adjuster verification of cause of loss.",
+          "additional_checks_required": [
+            "Verify storm vs flood - check weather reports, FEMA flood maps",
+            "Inspect roof damage to confirm storm-related",
+            "Verify water damage is from roof leak, not ground water"
+          ]
+        }
+      },
+      
+      "scenario_3_claim_exceeds_limit": {
+        "claim_id": "CLM-2024-003",
+        "policy_number": "AC789456123",
+        "customer_id": "CUST001",
+        "claim_type": "Bodily Injury",
+        "claim_date": "2024-03-20",
+        "claim_amount": 600000.00,
+        "claim_description": "Severe injury claim from accident",
+        "policy_grounding_result": {
+          "customer_verified": true,
+          "policy_found": true,
+          "policy_status": "ACTIVE",
+          "coverage_applicable": true,
+          "coverage_code": "BI",
+          "coverage_name": "Bodily Injury Liability",
+          "coverage_limit": 500000.00,
+          "claim_within_limit": false,
+          "claim_exceeds_by": 100000.00,
+          "exclusions_triggered": false,
+          "confidence_score": 0.65,
+          "recommendation": "LIKELY_DENIAL",
+          "approved_amount": 500000.00,
+          "reasoning": "Policy is active and coverage applies, but claim amount ($600,000) exceeds policy limit ($500,000). Can approve up to policy limit. Excess amount may be covered by umbrella policy if customer has one.",
+          "partial_approval": {
+            "approved": 500000.00,
+            "denied": 100000.00,
+            "reason": "Exceeds policy limit"
+          }
+        }
+      },
+      
+      "scenario_4_exclusion_triggered": {
+        "claim_id": "CLM-2024-004",
+        "policy_number": "AC789456123",
+        "customer_id": "CUST001",
+        "claim_type": "Collision",
+        "claim_date": "2024-03-25",
+        "claim_amount": 15000.00,
+        "claim_description": "Vehicle damage from racing event",
+        "policy_grounding_result": {
+          "customer_verified": true,
+          "policy_found": true,
+          "policy_status": "ACTIVE",
+          "coverage_applicable": true,
+          "coverage_code": "COLL",
+          "exclusions_triggered": true,
+          "exclusion_matched": "Racing activities",
+          "exclusion_text": "Excludes damage from racing, intentional acts, use of vehicle for hire",
+          "confidence_score": 0.35,
+          "recommendation": "AUTO_DENY",
+          "approved_amount": 0.00,
+          "reasoning": "Policy is active and collision coverage normally applies, but claim is excluded because damage occurred during racing activities, which is specifically excluded in policy terms."
+        }
+      }
+    },
+    
+    "policy_number_reference": {
+      "AC789456123": {
+        "policy_type": "AUTO",
+        "customer_id": "CUST001",
+        "customer_name": "Sarah Johnson",
+        "coverages": ["BI", "PD", "COMP", "COLL", "UMBI"],
+        "primary_use_case": "Auto collision and comprehensive claims"
+      },
+      "HO456789234": {
+        "policy_type": "HOME",
+        "customer_id": "CUST002",
+        "customer_name": "Robert Chen",
+        "coverages": ["DWELLING", "PERSONAL_PROPERTY", "LIABILITY", "MED_PAY", "LOSS_OF_USE"],
+        "primary_use_case": "Home property damage and liability claims"
+      }
+    },
+    
+    "auto_resolution_decision_tree": {
+      "start": "Receive claim submission",
+      "step_1": {
+        "action": "Lookup customer by policy_number or customer_id",
+        "table": "Customers",
+        "if_found": "Proceed to step_2",
+        "if_not_found": "REJECT - Customer not found"
+      },
+      "step_2": {
+        "action": "Retrieve policy by policy_number",
+        "table": "Policies",
+        "if_active": "Proceed to step_3",
+        "if_inactive": "REJECT - Policy not active",
+        "if_expired": "REJECT - Policy expired"
+      },
+      "step_3": {
+        "action": "Extract policy details and coverage",
+        "table": "PolicyDetails",
+        "if_coverage_found": "Proceed to step_4",
+        "if_no_coverage": "REJECT - Coverage not found"
+      },
+      "step_4": {
+        "action": "Check exclusions",
+        "if_excluded": "REJECT - Claim excluded",
+        "if_not_excluded": "Proceed to step_5"
+      },
+      "step_5": {
+        "action": "Check coverage limits",
+        "if_within_limit": "Proceed to step_6",
+        "if_exceeds_limit": "PARTIAL_APPROVE - Approve up to limit"
+      },
+      "step_6": {
+        "action": "Apply deductible and calculate confidence score",
+        "if_score >= 0.90": "AUTO_APPROVE",
+        "if_score >= 0.75": "MANUAL_REVIEW",
+        "if_score >= 0.50": "LIKELY_DENIAL",
+        "if_score < 0.50": "AUTO_DENY"
+      }
+    }
+  }
+}

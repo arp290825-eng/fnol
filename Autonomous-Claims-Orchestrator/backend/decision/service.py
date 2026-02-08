@@ -13,6 +13,12 @@ from backend.decision.policy_clauses import (
     CONFIDENCE_THRESHOLD_MEDIUM,
     get_policy_grounding,
 )
+from backend.decision.policy_grounding_local import (
+    get_policy_grounding_from_local_data,
+    get_complete_policy_info,
+    find_customer_by_policy,
+    get_policy_by_number,
+)
 
 
 def _mask_email(email: Optional[str]) -> str:
@@ -37,6 +43,7 @@ def _build_claim_draft(
     fields: Dict[str, Any],
     claim: Dict[str, Any],
     extraction: Dict[str, Any],
+    coverage_confirmed: bool = False,
 ) -> Dict[str, Any]:
     """Build claim draft from extraction result."""
     now = _iso_now()
@@ -78,7 +85,7 @@ def _build_claim_draft(
         "vehicleInfo": fields.get("vehicleInfo"),
         "propertyAddress": fields.get("propertyAddress"),
         "attachments": draft_attachments,
-        "coverageFound": bool(fields.get("policyNumber")),
+        "coverageFound": coverage_confirmed,
         "deductible": 500 if fields.get("policyNumber") else None,
         "createdAt": now,
         "source": "information_extraction",
@@ -115,10 +122,80 @@ def build_decision_pack(
     fields = extraction.get("extractedFields") or {}
 
     policy_start = time.time()
-    policy_grounding = get_policy_grounding(fields)
+    # Try to get policy grounding from local data first (customer-specific policy details)
+    # Fall back to generic policy clauses if local data not available
+    policy_grounding = get_policy_grounding_from_local_data(fields)
+    if not policy_grounding:
+        # Fallback to generic policy clauses
+        policy_grounding = get_policy_grounding(fields)
     policy_duration_ms = int((time.time() - policy_start) * 1000)
-
-    claim_draft = _build_claim_draft(fields, claim, extraction)
+    
+    # Check if policy is actually active and valid (not inactive/expired/not found)
+    # Coverage should only be confirmed if policy is active and has valid grounding results
+    policy_is_active = True
+    if policy_grounding:
+        # Check if any result indicates an inactive/invalid policy
+        inactive_indicators = ["POLICY-INACTIVE", "POLICY-NOT-FOUND", "CUSTOMER-NOT-FOUND", "NO-COVERAGE-DETAILS"]
+        for pg in policy_grounding:
+            clause_id = pg.get("clauseId", "")
+            confidence = pg.get("confidence_score", pg.get("score", pg.get("similarity", 0)))
+            # If we find an inactive indicator OR confidence is 0, policy is not active
+            if clause_id in inactive_indicators or confidence == 0.0:
+                policy_is_active = False
+                break
+            # If confidence is very low (< 0.5), likely not valid
+            if confidence < 0.5:
+                policy_is_active = False
+                break
+    
+    # Coverage is confirmed only if policy number exists, policy grounding found, AND policy is active
+    coverage_confirmed = bool(fields.get("policyNumber")) and len(policy_grounding) > 0 and policy_is_active
+    
+    # Get policy holder details from local database
+    policy_holder_info = None
+    policy_number = str(fields.get("policyNumber", "")).strip().upper()
+    if policy_number:
+        try:
+            customer = find_customer_by_policy(policy_number)
+            policy = get_policy_by_number(policy_number)
+            if customer and policy:
+                policy_holder_info = {
+                    "customer_id": customer.get("customer_id"),
+                    "first_name": customer.get("first_name"),
+                    "last_name": customer.get("last_name"),
+                    "full_name": f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip(),
+                    "email_id": customer.get("email_id"),
+                    "phone_number": customer.get("phone_number"),
+                    "address_line1": customer.get("address_line1"),
+                    "address_line2": customer.get("address_line2"),
+                    "city": customer.get("city"),
+                    "state": customer.get("state"),
+                    "postal_code": customer.get("postal_code"),
+                    "country": customer.get("country", "USA"),
+                    "customer_since": customer.get("customer_since"),
+                    "customer_status": customer.get("customer_status"),
+                    "risk_profile": customer.get("risk_profile"),
+                    "credit_score": customer.get("credit_score"),
+                    "policy_number": policy_number,
+                    "policy_type": policy.get("policy_type"),
+                    "policy_status": policy.get("policy_status"),
+                    "effective_date": policy.get("effective_date"),
+                    "expiration_date": policy.get("expiration_date"),
+                    "premium_amount": policy.get("premium_amount"),
+                    "premium_frequency": policy.get("premium_frequency"),
+                    "payment_status": policy.get("payment_status"),
+                    "total_coverage_limit": policy.get("total_coverage_limit"),
+                    "aggregate_deductible": policy.get("aggregate_deductible"),
+                    "carrier_name": policy.get("carrier_name"),
+                    "agent_name": policy.get("agent_name"),
+                    "agent_contact": policy.get("agent_contact"),
+                }
+        except Exception as e:
+            # Log error but don't fail - policy holder info is optional
+            import sys
+            print(f"Warning: Could not fetch policy holder info: {e}", file=sys.stderr)
+    
+    claim_draft = _build_claim_draft(fields, claim, extraction, coverage_confirmed)
     ev = extraction.get("evidence", [])
     docs = extraction.get("documents", [])
 
@@ -137,6 +214,7 @@ def build_decision_pack(
             "evidence": ev,
             "documents": [{**d, "metadata": d.get("metadata") or {}} for d in docs],
             "policyGrounding": policy_grounding,
+            "policyHolderInfo": policy_holder_info,
             "audit": [
                 {
                     "step": "Information Extraction",
@@ -159,7 +237,7 @@ def build_decision_pack(
                     "success": True,
                     "details": {
                         "clausesFound": len(policy_grounding),
-                        "coverageConfirmed": bool(fields.get("policyNumber")) and len(policy_grounding) > 0,
+                        "coverageConfirmed": coverage_confirmed,
                     },
                 },
                 {
@@ -186,7 +264,7 @@ def build_decision_pack(
             },
             "policyAssessment": {
                 "clausesFound": len(policy_grounding),
-                "coverageConfirmed": bool(fields.get("policyNumber")) and len(policy_grounding) > 0,
+                "coverageConfirmed": coverage_confirmed,
                 "topSimilarityScore": top_score,
                 "recommendedActions": (
                     ["Proceed with claim – policy clauses matched"]

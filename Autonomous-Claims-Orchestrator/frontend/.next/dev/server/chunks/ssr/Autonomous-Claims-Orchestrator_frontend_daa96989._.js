@@ -685,28 +685,22 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])('');
     const [processingSteps, setProcessingSteps] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
     const [currentStep, setCurrentStep] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])('');
-    (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
-        fetchPolicyOptions();
-    }, []);
-    const handleClearClaims = async ()=>{
-        if (!confirm('Clear all ingested claims? This cannot be undone.')) return;
-        setClearingClaims(true);
+    const fetchPolicyOptions = async ()=>{
+        setLoadingPolicies(true);
         setError('');
-        setSyncMessage('');
         try {
-            const res = await fetch('/api/ingested-claims/clear', {
-                method: 'POST'
-            });
-            if (!res.ok) throw new Error('Clear failed');
-            setSelectedClaim(null);
-            await fetchPolicyOptions();
+            const res = await fetch('/api/ingested-claims');
+            if (!res.ok) throw new Error('Failed to load claims');
+            const data = await res.json();
+            setPolicyOptions(data);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to clear');
+            setError('Unable to load ingested claims. Please try again.');
+            setPolicyOptions([]);
         } finally{
-            setClearingClaims(false);
+            setLoadingPolicies(false);
         }
     };
-    const handleSyncInbox = async ()=>{
+    const handleSyncInbox = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useCallback"])(async ()=>{
         setSyncingInbox(true);
         setError('');
         setSyncMessage('');
@@ -738,20 +732,33 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
         } finally{
             setSyncingInbox(false);
         }
-    };
-    const fetchPolicyOptions = async ()=>{
-        setLoadingPolicies(true);
+    }, []);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
+        // Load existing policies first, then auto-sync inbox on page load
+        const initialize = async ()=>{
+            await fetchPolicyOptions();
+            await handleSyncInbox();
+        };
+        initialize();
+    }, [
+        handleSyncInbox
+    ]);
+    const handleClearClaims = async ()=>{
+        if (!confirm('Clear all ingested claims? This cannot be undone.')) return;
+        setClearingClaims(true);
         setError('');
+        setSyncMessage('');
         try {
-            const res = await fetch('/api/ingested-claims');
-            if (!res.ok) throw new Error('Failed to load claims');
-            const data = await res.json();
-            setPolicyOptions(data);
+            const res = await fetch('/api/ingested-claims/clear', {
+                method: 'POST'
+            });
+            if (!res.ok) throw new Error('Clear failed');
+            setSelectedClaim(null);
+            await fetchPolicyOptions();
         } catch (err) {
-            setError('Unable to load ingested claims. Please try again.');
-            setPolicyOptions([]);
+            setError(err instanceof Error ? err.message : 'Failed to clear');
         } finally{
-            setLoadingPolicies(false);
+            setClearingClaims(false);
         }
     };
     const handleSelectPolicy = async (claimId)=>{
@@ -828,7 +835,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                 }
             }, void 0, false, {
                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                lineNumber: 183,
+                lineNumber: 190,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -843,12 +850,12 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                     className: "w-full max-w-2xl h-64 bg-gradient-radial from-[#2563EB]/10 via-[#7C3AED]/5 to-transparent rounded-full blur-3xl"
                                 }, void 0, false, {
                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                    lineNumber: 198,
+                                    lineNumber: 205,
                                     columnNumber: 13
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 197,
+                                lineNumber: 204,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -859,7 +866,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                         children: "FNOL Auto-Ingestion"
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 201,
+                                        lineNumber: 208,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
@@ -868,7 +875,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                             "Claims Processing",
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("br", {}, void 0, false, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                lineNumber: 206,
+                                                lineNumber: 213,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -876,13 +883,13 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                 children: "Inbox Portal"
                                             }, void 0, false, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                lineNumber: 207,
+                                                lineNumber: 214,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 204,
+                                        lineNumber: 211,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -890,7 +897,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                         children: "Select a policy number to review and process the corresponding FNOL submission"
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 211,
+                                        lineNumber: 218,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -898,19 +905,19 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                         children: "First notice of loss submissions and supporting documentation are ingested automatically"
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 214,
+                                        lineNumber: 221,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 200,
+                                lineNumber: 207,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                        lineNumber: 196,
+                        lineNumber: 203,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -919,25 +926,22 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "flex items-center gap-3",
                                 children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                        onClick: handleSyncInbox,
-                                        disabled: syncingInbox || loadingPolicies,
-                                        className: "flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#6366F1] hover:bg-[#4F46E5] rounded-xl shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-                                        title: "Fetch FNOL emails from inbox",
+                                    syncingInbox && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-[#6366F1] bg-white border border-[#E2E8F0] rounded-xl",
                                         children: [
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$refresh$2d$cw$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__RefreshCw$3e$__["RefreshCw"], {
-                                                className: `w-4 h-4 ${syncingInbox ? 'animate-spin' : ''}`
+                                                className: "w-4 h-4 animate-spin"
                                             }, void 0, false, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                lineNumber: 229,
-                                                columnNumber: 15
+                                                lineNumber: 232,
+                                                columnNumber: 17
                                             }, this),
-                                            "Sync Inbox"
+                                            "Auto-syncing inbox..."
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 223,
-                                        columnNumber: 13
+                                        lineNumber: 231,
+                                        columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                         onClick: handleClearClaims,
@@ -949,20 +953,20 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                 className: `w-4 h-4 ${clearingClaims ? 'animate-pulse' : ''}`
                                             }, void 0, false, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                lineNumber: 238,
+                                                lineNumber: 242,
                                                 columnNumber: 15
                                             }, this),
                                             "Clear All"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 232,
+                                        lineNumber: 236,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 222,
+                                lineNumber: 229,
                                 columnNumber: 11
                             }, this),
                             syncMessage && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -970,13 +974,13 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                 children: syncMessage
                             }, void 0, false, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 243,
+                                lineNumber: 247,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                        lineNumber: 221,
+                        lineNumber: 228,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -989,7 +993,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                         className: "absolute inset-0 bg-gradient-to-br from-[#2563EB]/5 via-transparent to-[#7C3AED]/5 pointer-events-none"
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 251,
+                                        lineNumber: 255,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1004,12 +1008,12 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                             className: "w-5 h-5 text-[#6366F1]"
                                                         }, void 0, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                            lineNumber: 255,
+                                                            lineNumber: 259,
                                                             columnNumber: 19
                                                         }, this)
                                                     }, void 0, false, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                        lineNumber: 254,
+                                                        lineNumber: 258,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -1017,13 +1021,13 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                         children: "Auto-Ingested FNOL Emails"
                                                     }, void 0, false, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                        lineNumber: 257,
+                                                        lineNumber: 261,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                lineNumber: 253,
+                                                lineNumber: 257,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1034,7 +1038,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                         children: "Policy Number"
                                                     }, void 0, false, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                        lineNumber: 264,
+                                                        lineNumber: 268,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -1055,7 +1059,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                                 children: loadingPolicies ? 'Loading...' : 'Select policy to view FNOL email'
                                                             }, void 0, false, {
                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                lineNumber: 278,
+                                                                lineNumber: 282,
                                                                 columnNumber: 19
                                                             }, this),
                                                             policyOptions.map((opt)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
@@ -1068,19 +1072,19 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                                     ]
                                                                 }, opt.id, true, {
                                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                    lineNumber: 282,
+                                                                    lineNumber: 286,
                                                                     columnNumber: 21
                                                                 }, this))
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                        lineNumber: 265,
+                                                        lineNumber: 269,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                lineNumber: 263,
+                                                lineNumber: 267,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1093,7 +1097,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                                 className: "w-4 h-4 text-[#6366F1]"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                lineNumber: 292,
+                                                                lineNumber: 296,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1101,13 +1105,13 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                                 children: "Email Content"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                lineNumber: 293,
+                                                                lineNumber: 297,
                                                                 columnNumber: 19
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                        lineNumber: 291,
+                                                        lineNumber: 295,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1119,51 +1123,51 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                                     className: "w-6 h-6 animate-spin mr-2"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                    lineNumber: 300,
+                                                                    lineNumber: 304,
                                                                     columnNumber: 23
                                                                 }, this),
                                                                 "Loading..."
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                            lineNumber: 299,
+                                                            lineNumber: 303,
                                                             columnNumber: 21
                                                         }, this) : selectedClaim ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("pre", {
                                                             className: "w-full p-4 bg-white/60 rounded-xl border border-[#E2E8F0] text-sm text-[#334155] whitespace-pre-wrap font-sans leading-relaxed",
-                                                            children: selectedClaim.emailBody
+                                                            children: selectedClaim.emailBody || 'No email content available'
                                                         }, void 0, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                            lineNumber: 304,
+                                                            lineNumber: 308,
                                                             columnNumber: 21
                                                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                             className: "h-full flex items-center justify-center p-8 border-2 border-dashed border-[#E2E8F0] rounded-xl bg-white/30 text-[#94A3B8] text-sm text-center",
                                                             children: "Select a policy number to view the auto-ingested FNOL email"
                                                         }, void 0, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                            lineNumber: 308,
+                                                            lineNumber: 312,
                                                             columnNumber: 21
                                                         }, this)
                                                     }, void 0, false, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                        lineNumber: 297,
+                                                        lineNumber: 301,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                lineNumber: 290,
+                                                lineNumber: 294,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 252,
+                                        lineNumber: 256,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 250,
+                                lineNumber: 254,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1173,7 +1177,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                         className: "absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 via-transparent to-[#2563EB]/5 pointer-events-none"
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 319,
+                                        lineNumber: 323,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1188,12 +1192,12 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                             className: "w-5 h-5 text-[#6366F1]"
                                                         }, void 0, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                            lineNumber: 323,
+                                                            lineNumber: 327,
                                                             columnNumber: 19
                                                         }, this)
                                                     }, void 0, false, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                        lineNumber: 322,
+                                                        lineNumber: 326,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -1201,13 +1205,13 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                         children: "Attachments"
                                                     }, void 0, false, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                        lineNumber: 325,
+                                                        lineNumber: 329,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                lineNumber: 321,
+                                                lineNumber: 325,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1225,12 +1229,12 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                                             className: "w-4 h-4 text-[#6366F1] flex-shrink-0"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                            lineNumber: 341,
+                                                                            lineNumber: 345,
                                                                             columnNumber: 31
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                        lineNumber: 340,
+                                                                        lineNumber: 344,
                                                                         columnNumber: 29
                                                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                                         className: "p-2 bg-[#F3E8FF] rounded-lg",
@@ -1238,12 +1242,12 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                                             className: "w-4 h-4 text-[#7C3AED] flex-shrink-0"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                            lineNumber: 345,
+                                                                            lineNumber: 349,
                                                                             columnNumber: 31
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                        lineNumber: 344,
+                                                                        lineNumber: 348,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1254,7 +1258,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                                                 children: att.name
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                                lineNumber: 349,
+                                                                                lineNumber: 353,
                                                                                 columnNumber: 29
                                                                             }, this),
                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1265,66 +1269,66 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                                                 ]
                                                                             }, void 0, true, {
                                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                                lineNumber: 352,
+                                                                                lineNumber: 356,
                                                                                 columnNumber: 29
                                                                             }, this)
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                        lineNumber: 348,
+                                                                        lineNumber: 352,
                                                                         columnNumber: 27
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                lineNumber: 338,
+                                                                lineNumber: 342,
                                                                 columnNumber: 25
                                                             }, this)
                                                         }, att.name, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                            lineNumber: 334,
+                                                            lineNumber: 338,
                                                             columnNumber: 23
                                                         }, this))
                                                 }, void 0, false, {
                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                    lineNumber: 332,
+                                                    lineNumber: 336,
                                                     columnNumber: 19
                                                 }, this) : selectedClaim ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                     className: "h-full flex items-center justify-center p-8 border-2 border-dashed border-[#E2E8F0] rounded-xl bg-white/30 text-[#94A3B8] text-sm text-center",
                                                     children: "No attachments for this claim"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                    lineNumber: 361,
+                                                    lineNumber: 365,
                                                     columnNumber: 19
                                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                     className: "h-full flex items-center justify-center p-8 border-2 border-dashed border-[#E2E8F0] rounded-xl bg-white/30 text-[#94A3B8] text-sm text-center",
                                                     children: "Select a policy to view attachments"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                    lineNumber: 365,
+                                                    lineNumber: 369,
                                                     columnNumber: 19
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                lineNumber: 330,
+                                                lineNumber: 334,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 320,
+                                        lineNumber: 324,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 318,
+                                lineNumber: 322,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                        lineNumber: 248,
+                        lineNumber: 252,
                         columnNumber: 9
                     }, this),
                     error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1334,7 +1338,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                 className: "w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
                             }, void 0, false, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 377,
+                                lineNumber: 381,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1342,13 +1346,13 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                 children: error
                             }, void 0, false, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 378,
+                                lineNumber: 382,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                        lineNumber: 376,
+                        lineNumber: 380,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1364,20 +1368,20 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                         className: "w-5 h-5 animate-spin"
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 391,
+                                        lineNumber: 395,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                         children: "Processing..."
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 392,
+                                        lineNumber: 396,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 390,
+                                lineNumber: 394,
                                 columnNumber: 15
                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "flex items-center space-x-3",
@@ -1386,30 +1390,30 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                         className: "w-5 h-5"
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 396,
+                                        lineNumber: 400,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                         children: "Process Claim Insights"
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 397,
+                                        lineNumber: 401,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 395,
+                                lineNumber: 399,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                            lineNumber: 384,
+                            lineNumber: 388,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                        lineNumber: 383,
+                        lineNumber: 387,
                         columnNumber: 9
                     }, this),
                     isProcessing && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1419,7 +1423,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                 className: "absolute inset-0 bg-gradient-to-br from-[#EEF2FF]/50 via-transparent to-[#F3E8FF]/50 pointer-events-none"
                             }, void 0, false, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 406,
+                                lineNumber: 410,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1430,7 +1434,7 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                         children: "Processing Steps"
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 408,
+                                        lineNumber: 412,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1445,12 +1449,12 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                                 className: "w-4 h-4 text-white flex-shrink-0"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                                lineNumber: 418,
+                                                                lineNumber: 422,
                                                                 columnNumber: 23
                                                             }, this)
                                                         }, void 0, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                            lineNumber: 417,
+                                                            lineNumber: 421,
                                                             columnNumber: 21
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1458,13 +1462,13 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                             children: step
                                                         }, void 0, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                            lineNumber: 420,
+                                                            lineNumber: 424,
                                                             columnNumber: 21
                                                         }, this)
                                                     ]
                                                 }, index, true, {
                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                    lineNumber: 413,
+                                                    lineNumber: 417,
                                                     columnNumber: 19
                                                 }, this)),
                                             currentStep && !processingSteps.includes(currentStep) && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1476,12 +1480,12 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                             className: "w-4 h-4 text-white animate-spin flex-shrink-0"
                                                         }, void 0, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                            lineNumber: 426,
+                                                            lineNumber: 430,
                                                             columnNumber: 23
                                                         }, this)
                                                     }, void 0, false, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                        lineNumber: 425,
+                                                        lineNumber: 429,
                                                         columnNumber: 21
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1489,43 +1493,43 @@ function HomePage({ onProcessClaim, isProcessing, setIsProcessing }) {
                                                         children: currentStep
                                                     }, void 0, false, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                        lineNumber: 428,
+                                                        lineNumber: 432,
                                                         columnNumber: 21
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                                lineNumber: 424,
+                                                lineNumber: 428,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                        lineNumber: 411,
+                                        lineNumber: 415,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                                lineNumber: 407,
+                                lineNumber: 411,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                        lineNumber: 405,
+                        lineNumber: 409,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-                lineNumber: 194,
+                lineNumber: 201,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/HomePage.tsx",
-        lineNumber: 181,
+        lineNumber: 188,
         columnNumber: 5
     }, this);
 }
@@ -2375,13 +2379,13 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
         if (avgScore >= 0.7) {
             return {
                 type: 'success',
-                message: `${policyGrounding.length} policy matches found`,
+                message: `${policyGrounding.length} policy clause matches found`,
                 subMessage: `${Math.round(avgScore * 100)}% average similarity`
             };
         }
         return {
             type: 'neutral',
-            message: `${policyGrounding.length} policy matches`,
+            message: `${policyGrounding.length} policy clause matches`,
             subMessage: 'Review recommended'
         };
     }, [
@@ -3033,6 +3037,664 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
                                         lineNumber: 510,
                                         columnNumber: 15
+                                    }, this),
+                                    decisionPack?.policyHolderInfo && Object.keys(decisionPack.policyHolderInfo).length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$dom$2f$motion$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].div, {
+                                        initial: {
+                                            opacity: 0,
+                                            y: 20
+                                        },
+                                        animate: {
+                                            opacity: 1,
+                                            y: 0
+                                        },
+                                        transition: {
+                                            delay: 0.2
+                                        },
+                                        className: "mt-6 pt-6 border-t-2 border-[#E5E7EB]",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "flex items-center space-x-2 mb-4",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$user$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__User$3e$__["User"], {
+                                                        className: "w-5 h-5 text-[#6366F1]"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                        lineNumber: 595,
+                                                        columnNumber: 21
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                                                        className: "text-base font-bold text-[#111827] uppercase tracking-wider",
+                                                        children: "Policy Holder Details"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                        lineNumber: 596,
+                                                        columnNumber: 21
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                lineNumber: 594,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-5",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "mb-5",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                                                className: "text-xs font-semibold text-[#4F46E5] uppercase tracking-wider mb-3",
+                                                                children: "Customer Information"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                lineNumber: 602,
+                                                                columnNumber: 23
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                className: "grid grid-cols-1 md:grid-cols-2 gap-3",
+                                                                children: [
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Full Name"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 605,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: decisionPack.policyHolderInfo.full_name || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 606,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 604,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Customer ID"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 611,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827] font-mono",
+                                                                                children: decisionPack.policyHolderInfo.customer_id || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 612,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 610,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Email"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 617,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827] break-all",
+                                                                                children: decisionPack.policyHolderInfo.email_id || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 618,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 616,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Phone"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 623,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: decisionPack.policyHolderInfo.phone_number || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 624,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 622,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100 md:col-span-2",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Address"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 629,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: (()=>{
+                                                                                    const parts = [];
+                                                                                    if (decisionPack.policyHolderInfo.address_line1) {
+                                                                                        parts.push(decisionPack.policyHolderInfo.address_line1);
+                                                                                    }
+                                                                                    if (decisionPack.policyHolderInfo.address_line2) {
+                                                                                        parts.push(decisionPack.policyHolderInfo.address_line2);
+                                                                                    }
+                                                                                    const cityStateZip = [
+                                                                                        decisionPack.policyHolderInfo.city,
+                                                                                        decisionPack.policyHolderInfo.state,
+                                                                                        decisionPack.policyHolderInfo.postal_code
+                                                                                    ].filter(Boolean).join(', ');
+                                                                                    if (cityStateZip) {
+                                                                                        parts.push(cityStateZip);
+                                                                                    }
+                                                                                    return parts.length > 0 ? parts.join(', ') : '—';
+                                                                                })()
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 630,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 628,
+                                                                        columnNumber: 25
+                                                                    }, this)
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                lineNumber: 603,
+                                                                columnNumber: 23
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                        lineNumber: 601,
+                                                        columnNumber: 21
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "mb-5",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                                                className: "text-xs font-semibold text-[#4F46E5] uppercase tracking-wider mb-3",
+                                                                children: "Policy Information"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                lineNumber: 656,
+                                                                columnNumber: 23
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                className: "grid grid-cols-1 md:grid-cols-2 gap-3",
+                                                                children: [
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Policy Number"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 659,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827] font-mono",
+                                                                                children: decisionPack.policyHolderInfo.policy_number || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 660,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 658,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Policy Type"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 665,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: decisionPack.policyHolderInfo.policy_type || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 666,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 664,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Policy Status"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 671,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: `text-sm font-semibold ${decisionPack.policyHolderInfo.policy_status === 'ACTIVE' ? 'text-[#059669]' : 'text-[#DC2626]'}`,
+                                                                                children: decisionPack.policyHolderInfo.policy_status || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 672,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 670,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Carrier"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 681,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: decisionPack.policyHolderInfo.carrier_name || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 682,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 680,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Effective Date"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 687,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: decisionPack.policyHolderInfo.effective_date || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 688,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 686,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Expiration Date"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 693,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: decisionPack.policyHolderInfo.expiration_date || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 694,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 692,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Premium"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 699,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: (()=>{
+                                                                                    const amount = decisionPack.policyHolderInfo.premium_amount;
+                                                                                    const frequency = decisionPack.policyHolderInfo.premium_frequency;
+                                                                                    if (amount != null && !isNaN(Number(amount))) {
+                                                                                        const formatted = `$${Number(amount).toLocaleString('en-US', {
+                                                                                            minimumFractionDigits: 2,
+                                                                                            maximumFractionDigits: 2
+                                                                                        })}`;
+                                                                                        return frequency ? `${formatted} ${frequency}` : formatted;
+                                                                                    }
+                                                                                    return '—';
+                                                                                })()
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 700,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 698,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Payment Status"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 713,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: `text-sm font-semibold ${decisionPack.policyHolderInfo.payment_status === 'CURRENT' ? 'text-[#059669]' : 'text-[#DC2626]'}`,
+                                                                                children: decisionPack.policyHolderInfo.payment_status || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 714,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 712,
+                                                                        columnNumber: 25
+                                                                    }, this)
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                lineNumber: 657,
+                                                                columnNumber: 23
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                        lineNumber: 655,
+                                                        columnNumber: 21
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                                                className: "text-xs font-semibold text-[#4F46E5] uppercase tracking-wider mb-3",
+                                                                children: "Coverage & Risk"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                lineNumber: 727,
+                                                                columnNumber: 23
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                className: "grid grid-cols-1 md:grid-cols-2 gap-3",
+                                                                children: [
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Total Coverage Limit"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 730,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: (()=>{
+                                                                                    const limit = decisionPack.policyHolderInfo.total_coverage_limit;
+                                                                                    if (limit != null && !isNaN(Number(limit))) {
+                                                                                        return `$${Number(limit).toLocaleString('en-US', {
+                                                                                            minimumFractionDigits: 2,
+                                                                                            maximumFractionDigits: 2
+                                                                                        })}`;
+                                                                                    }
+                                                                                    return '—';
+                                                                                })()
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 731,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 729,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Aggregate Deductible"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 742,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: (()=>{
+                                                                                    const deductible = decisionPack.policyHolderInfo.aggregate_deductible;
+                                                                                    if (deductible != null && !isNaN(Number(deductible))) {
+                                                                                        return `$${Number(deductible).toLocaleString('en-US', {
+                                                                                            minimumFractionDigits: 2,
+                                                                                            maximumFractionDigits: 2
+                                                                                        })}`;
+                                                                                    }
+                                                                                    return '—';
+                                                                                })()
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 743,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 741,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Risk Profile"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 754,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: `text-sm font-semibold ${decisionPack.policyHolderInfo.risk_profile === 'LOW' ? 'text-[#059669]' : decisionPack.policyHolderInfo.risk_profile === 'MEDIUM' ? 'text-[#F59E0B]' : 'text-[#DC2626]'}`,
+                                                                                children: decisionPack.policyHolderInfo.risk_profile || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 755,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 753,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Credit Score"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 766,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: decisionPack.policyHolderInfo.credit_score || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 767,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 765,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Customer Since"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 772,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: decisionPack.policyHolderInfo.customer_since || '—'
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 773,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 771,
+                                                                        columnNumber: 25
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "bg-white rounded-lg p-3 border border-blue-100",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-[#6B7280] mb-1",
+                                                                                children: "Agent Contact"
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 778,
+                                                                                columnNumber: 27
+                                                                            }, this),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-sm font-semibold text-[#111827]",
+                                                                                children: (()=>{
+                                                                                    const agentName = decisionPack.policyHolderInfo.agent_name;
+                                                                                    const agentContact = decisionPack.policyHolderInfo.agent_contact;
+                                                                                    if (agentName) {
+                                                                                        return agentContact ? `${agentName} • ${agentContact}` : agentName;
+                                                                                    }
+                                                                                    return '—';
+                                                                                })()
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                                lineNumber: 779,
+                                                                                columnNumber: 27
+                                                                            }, this)
+                                                                        ]
+                                                                    }, void 0, true, {
+                                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                        lineNumber: 777,
+                                                                        columnNumber: 25
+                                                                    }, this)
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                                lineNumber: 728,
+                                                                columnNumber: 23
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                        lineNumber: 726,
+                                                        columnNumber: 21
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                                lineNumber: 599,
+                                                columnNumber: 19
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
+                                        lineNumber: 588,
+                                        columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
@@ -3065,7 +3727,7 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                 className: "w-4 h-4 text-[#6366F1]"
                                             }, void 0, false, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                lineNumber: 596,
+                                                lineNumber: 806,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -3073,13 +3735,13 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                 children: "Policy Grounding"
                                             }, void 0, false, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                lineNumber: 597,
+                                                lineNumber: 807,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                        lineNumber: 595,
+                                        lineNumber: 805,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3091,19 +3753,19 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                     className: "w-5 h-5 text-[#10B981] flex-shrink-0 mt-0.5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                    lineNumber: 610,
+                                                    lineNumber: 820,
                                                     columnNumber: 21
                                                 }, this) : policyState.type === 'warning' ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$alert$2d$triangle$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__AlertTriangle$3e$__["AlertTriangle"], {
                                                     className: "w-5 h-5 text-[#F59E0B] flex-shrink-0 mt-0.5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                    lineNumber: 612,
+                                                    lineNumber: 822,
                                                     columnNumber: 21
                                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$shield$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Shield$3e$__["Shield"], {
                                                     className: "w-5 h-5 text-[#6B7280] flex-shrink-0 mt-0.5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                    lineNumber: 614,
+                                                    lineNumber: 824,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3114,7 +3776,7 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                             children: policyState.message
                                                         }, void 0, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                            lineNumber: 617,
+                                                            lineNumber: 827,
                                                             columnNumber: 21
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3122,24 +3784,24 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                             children: policyState.subMessage
                                                         }, void 0, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                            lineNumber: 626,
+                                                            lineNumber: 836,
                                                             columnNumber: 21
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                    lineNumber: 616,
+                                                    lineNumber: 826,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                            lineNumber: 608,
+                                            lineNumber: 818,
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                        lineNumber: 601,
+                                        lineNumber: 811,
                                         columnNumber: 15
                                     }, this),
                                     policyGrounding.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3154,7 +3816,7 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                lineNumber: 642,
+                                                lineNumber: 852,
                                                 columnNumber: 19
                                             }, this),
                                             policyGrounding.map((policy)=>{
@@ -3189,7 +3851,7 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                                                         children: policy.clauseId
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                                        lineNumber: 669,
+                                                                                        lineNumber: 879,
                                                                                         columnNumber: 33
                                                                                     }, this),
                                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3200,7 +3862,7 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                                                         ]
                                                                                     }, void 0, true, {
                                                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                                        lineNumber: 670,
+                                                                                        lineNumber: 880,
                                                                                         columnNumber: 33
                                                                                     }, this),
                                                                                     policy.sourceRef && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3208,13 +3870,13 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                                                         children: policy.sourceRef
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                                        lineNumber: 674,
+                                                                                        lineNumber: 884,
                                                                                         columnNumber: 35
                                                                                     }, this)
                                                                                 ]
                                                                             }, void 0, true, {
                                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                                lineNumber: 668,
+                                                                                lineNumber: 878,
                                                                                 columnNumber: 31
                                                                             }, this),
                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3222,7 +3884,7 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                                                 children: policy.title
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                                lineNumber: 677,
+                                                                                lineNumber: 887,
                                                                                 columnNumber: 31
                                                                             }, this),
                                                                             policy.section && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3230,7 +3892,7 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                                                 children: policy.section
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                                lineNumber: 681,
+                                                                                lineNumber: 891,
                                                                                 columnNumber: 33
                                                                             }, this),
                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3238,7 +3900,7 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                                                 children: policy.snippet || fullContent.slice(0, 140) + (fullContent.length > 140 ? '...' : '')
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                                lineNumber: 685,
+                                                                                lineNumber: 895,
                                                                                 columnNumber: 31
                                                                             }, this),
                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3246,13 +3908,13 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                                                 children: isExpanded ? 'Click to collapse' : 'Click to read full clause'
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                                lineNumber: 688,
+                                                                                lineNumber: 898,
                                                                                 columnNumber: 31
                                                                             }, this)
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                        lineNumber: 667,
+                                                                        lineNumber: 877,
                                                                         columnNumber: 29
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3262,29 +3924,29 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                                             className: "w-4 h-4"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                            lineNumber: 693,
+                                                                            lineNumber: 903,
                                                                             columnNumber: 45
                                                                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$down$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronDown$3e$__["ChevronDown"], {
                                                                             className: "w-4 h-4"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                            lineNumber: 693,
+                                                                            lineNumber: 903,
                                                                             columnNumber: 81
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                        lineNumber: 692,
+                                                                        lineNumber: 902,
                                                                         columnNumber: 29
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                lineNumber: 666,
+                                                                lineNumber: 876,
                                                                 columnNumber: 27
                                                             }, this)
                                                         }, void 0, false, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                            lineNumber: 661,
+                                                            lineNumber: 871,
                                                             columnNumber: 25
                                                         }, this),
                                                         isExpanded && fullContent && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3295,7 +3957,7 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                                     children: fullContent
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                    lineNumber: 699,
+                                                                    lineNumber: 909,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3303,37 +3965,37 @@ function ReviewPage({ claimData, onNextStage, onPreviousStage, onLoadClaim }) {
                                                                     children: policy.rationale
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                                    lineNumber: 702,
+                                                                    lineNumber: 912,
                                                                     columnNumber: 29
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                            lineNumber: 698,
+                                                            lineNumber: 908,
                                                             columnNumber: 27
                                                         }, this)
                                                     ]
                                                 }, policy.clauseId, true, {
                                                     fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                                    lineNumber: 657,
+                                                    lineNumber: 867,
                                                     columnNumber: 23
                                                 }, this);
                                             })
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                        lineNumber: 641,
+                                        lineNumber: 851,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                                lineNumber: 590,
+                                lineNumber: 800,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/ReviewPage.tsx",
-                            lineNumber: 589,
+                            lineNumber: 799,
                             columnNumber: 11
                         }, this)
                     ]
@@ -6262,7 +6924,7 @@ function DashboardPage({ claimData, onReset }) {
                                                 children: [
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Autonomous$2d$Claims$2d$Orchestrator$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                         className: "text-sm text-[#64748B]",
-                                                        children: "Policy Matches"
+                                                        children: "Policy Clause Matches"
                                                     }, void 0, false, {
                                                         fileName: "[project]/Autonomous-Claims-Orchestrator/frontend/components/DashboardPage.tsx",
                                                         lineNumber: 388,
@@ -6428,7 +7090,7 @@ function DashboardPage({ claimData, onReset }) {
                                                                     c.lossType,
                                                                     " · ",
                                                                     c.policyMatches,
-                                                                    " policy match",
+                                                                    " policy clause match",
                                                                     c.policyMatches !== 1 ? 'es' : ''
                                                                 ]
                                                             }, void 0, true, {

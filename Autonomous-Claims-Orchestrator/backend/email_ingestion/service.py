@@ -37,13 +37,109 @@ def _load_env() -> None:
                     os.environ.setdefault(key.strip(), val.strip().strip("'\""))
 
 
+def _has_relevant_keywords(subject: str, body: str) -> bool:
+    """Check if email contains relevant keywords: claim, FNOL, or damage."""
+    # Combine subject and body for keyword search
+    text = f"{subject} {body}".lower()
+    
+    # Required keywords: must contain at least one of claim, FNOL, damage, loss, or incident
+    required_keywords = [
+        # Claim-related
+        r"\bclaim\b",
+        r"\bclaims\b",
+        r"\binsurance claim\b",
+        r"\bfile a claim\b",
+        r"\bsubmit.*claim\b",
+        r"\breport.*claim\b",
+        r"\bclaim number\b",
+        r"\bclaim id\b",
+        r"\bclaim reference\b",
+        # FNOL-related
+        r"\bfnol\b",
+        r"\bfirst notice of loss\b",
+        r"\bfirst notice\b",
+        r"\bnotice of loss\b",
+        # Damage-related
+        r"\bdamage\b",
+        r"\bdamaged\b",
+        r"\bproperty damage\b",
+        r"\bvehicle damage\b",
+        r"\bauto damage\b",
+        r"\bcar damage\b",
+        r"\bdamage report\b",
+        # Loss-related
+        r"\bloss\b",
+        r"\blosses\b",
+        r"\bloss report\b",
+        # Incident-related
+        r"\bincident\b",
+        r"\bincidents\b",
+        r"\bincident report\b",
+        r"\baccident\b",
+        r"\baccidents\b",
+        r"\baccident report\b",
+    ]
+    
+    # Check if any required keyword appears (as whole word)
+    for pattern in required_keywords:
+        if re.search(pattern, text, re.IGNORECASE):
+            return True
+    
+    return False
+
+
+def _has_strong_keywords(subject: str, body: str) -> bool:
+    """Check if email has strong FNOL indicators (claim, FNOL, damage with context)."""
+    text = f"{subject} {body}".lower()
+    
+    # Strong keywords that indicate FNOL/claim
+    strong_patterns = [
+        r"\bclaim\b",
+        r"\bclaims\b",
+        r"\bfnol\b",
+        r"\bfirst notice of loss\b",
+        r"\binsurance claim\b",
+        r"\bfile a claim\b",
+        r"\bsubmit.*claim\b",
+        r"\breport.*claim\b",
+        r"\bclaim number\b",
+        r"\bdamage\b.*\bclaim\b",
+        r"\bclaim\b.*\bdamage\b",
+        r"\bproperty damage\b",
+        r"\bvehicle damage\b",
+        r"\bauto damage\b",
+        r"\bcar damage\b",
+    ]
+    
+    for pattern in strong_patterns:
+        if re.search(pattern, text, re.IGNORECASE):
+            return True
+    return False
+
+
 def _classify_fnol_by_llm(subject: str, body: str) -> bool:
-    """LLM-based FNOL classifier."""
+    """LLM-based FNOL classifier - requires claim/FNOL/damage keywords."""
+    # First, check for relevant keywords - if none found, reject immediately
+    if not _has_relevant_keywords(subject, body):
+        return False
+    
+    # If filter is disabled but email has relevant keywords, allow through
     if os.environ.get("FNOL_FILTER_ENABLED", "true").lower() == "false":
         return True
+    
+    # Check for strong keywords - if present, allow through even without LLM
+    has_strong = _has_strong_keywords(subject, body)
+    
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        return True
+        # If no API key but has strong keywords, allow through
+        if has_strong:
+            return True
+        # Otherwise reject
+        print("OpenAI API key not configured - email rejected (no strong keywords)", file=sys.stderr)
+        return False
+    
+    # Use LLM for final classification - be very lenient
     try:
         from openai import OpenAI
         client = OpenAI(api_key=api_key)
@@ -54,17 +150,32 @@ def _classify_fnol_by_llm(subject: str, body: str) -> bool:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an FNOL classifier. Determine if this email is a First Notice of Loss (FNOL) or insurance claim submission. Reply with ONLY \"yes\" or \"no\".",
+                    "content": "You are an FNOL classifier. Be VERY lenient. Accept ANY email that mentions: claim, claims, damage, loss, incident, accident, FNOL, or first notice of loss. Only reject: pure spam, completely unrelated marketing with zero claim context, or system-generated emails with no human claim content. If there's ANY mention of claim/damage/loss/incident, say YES. Reply with ONLY \"yes\" or \"no\".",
                 },
-                {"role": "user", "content": f"Is this email an FNOL or insurance claim submission?\n\n{text}"},
+                {"role": "user", "content": f"Does this email mention a claim, damage, loss, incident, accident, or FNOL? Be VERY lenient - if it mentions any of these, say YES.\n\nSubject: {subject}\n\nBody:\n{body[:3000]}"},
             ],
             max_tokens=10,
             temperature=0,
         )
         answer = (response.choices[0].message.content or "").strip().lower()
-        return answer.startswith("yes")
-    except Exception:
-        return True
+        is_fnol = answer.startswith("yes")
+        
+        # If LLM rejects but email has strong keywords, allow through anyway
+        if not is_fnol and has_strong:
+            print(f"LLM rejected but strong keywords found - allowing: {subject[:100]}", file=sys.stderr)
+            return True
+            
+        if not is_fnol:
+            print(f"LLM rejected email - Subject: {subject[:100]}", file=sys.stderr)
+        return is_fnol
+    except Exception as e:
+        # If LLM fails but has strong keywords, allow through
+        if has_strong:
+            print(f"LLM error but strong keywords found - allowing: {subject[:100]}", file=sys.stderr)
+            return True
+        # Otherwise reject
+        print(f"LLM classification error: {e} - email rejected", file=sys.stderr)
+        return False
 
 
 def _strip_html(html: str) -> str:
@@ -168,23 +279,79 @@ def _extract_raw_message(msg_data: list) -> Optional[bytes]:
 
 
 def _extract_body_text(msg: email.message.Message) -> str:
-    """Extract plain text body from email."""
+    """Extract plain text body from email - ONLY the actual email body, NOT attachments or forwarded content."""
     body_plain = ""
     body_html = ""
+    
+    # First, try to get the main body from the top-level message
+    if not msg.is_multipart():
+        # Simple non-multipart message
+        ct = msg.get_content_type()
+        if ct == "text/plain":
+            return _get_part_text(msg)
+        elif ct == "text/html":
+            return _strip_html(_get_part_text(msg))
+        return ""
+    
+    # For multipart messages, extract only the main body parts
+    # Skip parts that are attachments or forwarded content
     for part in msg.walk():
+        # Skip multipart containers
         if part.get_content_maintype() == "multipart":
             continue
+        
+        # Skip parts marked as attachments
+        disposition = part.get("Content-Disposition", "")
+        if disposition and "attachment" in disposition.lower():
+            continue
+        
+        # Skip parts that are explicitly attachments (even if not marked)
+        filename = part.get_filename()
+        if filename:
+            continue
+        
         ct = part.get_content_type()
+        
+        # Only extract text/plain and text/html that are NOT attachments
         if ct == "text/plain":
-            body_plain = _get_part_text(part)
+            text = _get_part_text(part)
+            # Prefer the first non-empty plain text part (usually the main body)
+            if text.strip() and not body_plain:
+                body_plain = text
         elif ct == "text/html":
-            body_html = _get_part_text(part)
+            html = _get_part_text(part)
+            # Prefer the first non-empty HTML part (usually the main body)
+            if html.strip() and not body_html:
+                body_html = html
+    
+    # Return plain text if available, otherwise HTML stripped
     if body_plain.strip():
         return body_plain
     if body_html.strip():
         return _strip_html(body_html)
-    if not msg.is_multipart():
-        return _get_part_text(msg)
+    
+    # Fallback: if no body found, try to get text from the main message
+    # This handles edge cases where the structure is unusual
+    if msg.is_multipart():
+        # Try to get the first text/plain part from the main multipart
+        for part in msg.get_payload():
+            if isinstance(part, str):
+                continue
+            if part.get_content_maintype() == "multipart":
+                continue
+            ct = part.get_content_type()
+            disposition = part.get("Content-Disposition", "")
+            if "attachment" in disposition.lower():
+                continue
+            if ct == "text/plain":
+                text = _get_part_text(part)
+                if text.strip():
+                    return text
+            elif ct == "text/html":
+                html = _get_part_text(part)
+                if html.strip():
+                    return _strip_html(html)
+    
     return ""
 
 
@@ -218,6 +385,8 @@ def sync_inbox() -> Dict[str, Any]:
 
     include_read = os.environ.get("IMAP_SYNC_INCLUDE_READ", "true").lower() in ("true", "1", "yes")
     max_emails = int(os.environ.get("IMAP_SYNC_MAX_EMAILS", "100"))
+    # SSL verification: set IMAP_SSL_VERIFY=false to disable certificate verification
+    ssl_verify = os.environ.get("IMAP_SSL_VERIFY", "false").lower() not in ("false", "0", "no")
 
     def parse_uids(data: list) -> List[str]:
         if not data or data[0] is None:
@@ -227,7 +396,13 @@ def sync_inbox() -> Dict[str, Any]:
         return [u for u in s.split() if u]
 
     try:
+        # Create SSL context
+        # By default, disable certificate verification to handle common SSL issues
+        # Set IMAP_SSL_VERIFY=true in .env to enable strict verification
         context = ssl.create_default_context()
+        if not ssl_verify:
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
         mail = imaplib.IMAP4_SSL(host, port, ssl_context=context)
         mail.login(user, password)
 
@@ -289,6 +464,14 @@ def sync_inbox() -> Dict[str, Any]:
                     continue
 
                 body_text = _extract_body_text(msg)
+                
+                # Debug: log first few emails being checked
+                if len([r for r in result.get("errors", []) if "debug" not in r]) == 0:
+                    print(f"DEBUG: Checking email - Subject: '{subject[:80]}'", file=sys.stderr)
+                    print(f"DEBUG: Body length: {len(body_text)}, preview: '{body_text[:150]}'", file=sys.stderr)
+                    has_keywords = _has_relevant_keywords(subject, body_text)
+                    print(f"DEBUG: Has relevant keywords: {has_keywords}", file=sys.stderr)
+                
                 if not _classify_fnol_by_llm(subject, body_text):
                     result["skippedNoFnol"] = result.get("skippedNoFnol", 0) + 1
                     continue
