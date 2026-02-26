@@ -19,7 +19,7 @@ if [ -f "$ENV_FILE" ]; then
     echo "✓ .env file already exists"
     current_key=$(grep "^OPENAI_API_KEY=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
     
-    if [ -n "$current_key" ] && [ "$current_key" != "your_openai_api_key_here" ]; then
+    if [ -n "$current_key" ]; then
         echo "Current API key: ${current_key:0:20}... (hidden)"
         read -p "Do you want to update it? (y/n): " update_key
         if [ "$update_key" != "y" ] && [ "$update_key" != "Y" ]; then
@@ -35,8 +35,8 @@ else
     else
         echo "✗ env.example not found. Creating basic .env file..."
         cat > "$ENV_FILE" << EOF
-# OpenAI API Configuration
-OPENAI_API_KEY=your_openai_api_key_here
+# OpenAI API Configuration (set key via this script or manually; never commit .env)
+OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o
 OPENAI_TEMPERATURE=0.1
 

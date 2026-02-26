@@ -61,19 +61,12 @@ pip install -r backend/requirements.txt
 
 ### 2. Configuration
 
-Create a `.env` file in the **project root** (or copy from `env.example`):
+Create a `.env` file in the **project root** (never commit this file):
 
-```bash
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4o
-
-# IMAP (for Sync Inbox)
-SENDER_EMAIL=your_email@gmail.com
-EMAIL_PASSWORD=your_app_password
-
-# SendGrid (optional, for inbound webhook)
-SENDGRID_API_KEY=your_sendgrid_api_key
-```
+- `OPENAI_API_KEY` – Get from [platform.openai.com/api-keys](https://platform.openai.com/api-keys); required for real AI extraction.
+- `OPENAI_MODEL` – Optional; default `gpt-4o`.
+- `SENDER_EMAIL` / `EMAIL_PASSWORD` – For IMAP Sync Inbox.
+- `SENDGRID_API_KEY` – Optional; for inbound webhook.
 
 ### 3. Run the Application
 
