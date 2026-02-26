@@ -1,6 +1,8 @@
 .env
 .env.local
 node_modules
+frontend/.next
+.next
 data/users.csv
 data/ingested-claims.json
 data/ingested-attachments/
