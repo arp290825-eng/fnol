@@ -6,14 +6,29 @@ It loads policy data from local JSON files and performs comprehensive policy val
 """
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Path to local data files
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-LOCAL_DATA_DIR = PROJECT_ROOT / "database" / "local_data"
-MAPPING_FILE = PROJECT_ROOT / "database" / "policy_grounding_mapping.json"
+# Path to local data files - Use environment variables with fallback
+_PROJECT_ROOT_ENV = os.getenv("PROJECT_ROOT")
+if _PROJECT_ROOT_ENV:
+    PROJECT_ROOT = Path(_PROJECT_ROOT_ENV)
+else:
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+_LOCAL_DATA_DIR_ENV = os.getenv("LOCAL_DATA_DIR")
+if _LOCAL_DATA_DIR_ENV:
+    LOCAL_DATA_DIR = Path(_LOCAL_DATA_DIR_ENV)
+else:
+    LOCAL_DATA_DIR = PROJECT_ROOT / "database" / "local_data"
+
+_MAPPING_FILE_ENV = os.getenv("POLICY_GROUNDING_MAPPING_FILE")
+if _MAPPING_FILE_ENV:
+    MAPPING_FILE = Path(_MAPPING_FILE_ENV)
+else:
+    MAPPING_FILE = PROJECT_ROOT / "database" / "policy_grounding_mapping.json"
 
 CUSTOMERS_FILE = LOCAL_DATA_DIR / "customers.json"
 POLICIES_FILE = LOCAL_DATA_DIR / "policies.json"
@@ -215,7 +230,9 @@ def get_policy_grounding_from_local_data(extracted_fields: Dict[str, Any]) -> Li
     effective_date = policy.get("effective_date")
     expiration_date = policy.get("expiration_date")
     
-    claim_date = datetime.now().date()
+    # Use current date for validation (not claim date)
+    current_date = datetime.now().date()
+    claim_date = current_date
     if loss_date:
         try:
             if isinstance(loss_date, str):
@@ -225,31 +242,105 @@ def get_policy_grounding_from_local_data(extracted_fields: Dict[str, Any]) -> Li
         except:
             pass
     
+    # Parse expiration date first to check if policy is expired
+    # IMPORTANT: This check overrides the policy_status from JSON file
+    # Even if JSON shows "ACTIVE", if expiration_date < current_date, policy is EXPIRED
+    is_expired = False
+    exp_date = None
+    if expiration_date:
+        try:
+            exp_date = datetime.strptime(expiration_date, "%Y-%m-%d").date() if isinstance(expiration_date, str) else expiration_date
+            # CRITICAL: Check if expiration date is before current date - policy is expired
+            # This overrides any "ACTIVE" status in the JSON file
+            if exp_date < current_date:
+                is_expired = True
+                policy_status = "EXPIRED"  # Override status to EXPIRED (regardless of JSON value)
+                is_active = False  # Force inactive (regardless of JSON value)
+        except:
+            pass
+    
+    # Check if policy is active and within coverage period
     policy_active = False
-    if policy_status == "ACTIVE" and is_active:
-        if effective_date and expiration_date:
-            try:
-                eff_date = datetime.strptime(effective_date, "%Y-%m-%d").date() if isinstance(effective_date, str) else effective_date
-                exp_date = datetime.strptime(expiration_date, "%Y-%m-%d").date() if isinstance(expiration_date, str) else expiration_date
-                policy_active = eff_date <= claim_date <= exp_date
-            except:
-                policy_active = True  # If date parsing fails, assume active
+    # Policy can only be active if: NOT expired, status is ACTIVE, is_active flag is True
+    if not is_expired:
+        if policy_status == "ACTIVE" and is_active:
+            if effective_date and expiration_date:
+                try:
+                    eff_date = datetime.strptime(effective_date, "%Y-%m-%d").date() if isinstance(effective_date, str) else effective_date
+                    if exp_date is None:
+                        exp_date = datetime.strptime(expiration_date, "%Y-%m-%d").date() if isinstance(expiration_date, str) else expiration_date
+                    # Policy is active only if:
+                    # 1. Expiration date is NOT before current date (already checked above)
+                    # 2. Claim date is within effective and expiration dates
+                    if exp_date >= current_date:
+                        policy_active = eff_date <= claim_date <= exp_date
+                    else:
+                        # Double-check: expiration date is in the past
+                        is_expired = True
+                        policy_status = "EXPIRED"
+                        policy_active = False
+                except:
+                    # If date parsing fails, only assume active if not expired
+                    if not is_expired:
+                        policy_active = True
+    else:
+        # Policy is expired, so it cannot be active
+        policy_active = False
     
     if not policy_active:
+        # Determine the specific reason for policy being inactive
+        if is_expired:
+            title = "Policy Expired"
+            snippet = f"Policy {policy_number} expired on {expiration_date}. Current date: {current_date}"
+            content = f"Policy status: EXPIRED. Policy expired on {expiration_date}, current date is {current_date}. Claim date: {claim_date}"
+            rationale = f"Policy expired on {expiration_date}. Current date is {current_date}"
+        elif claim_date and expiration_date and exp_date and claim_date > exp_date:
+            title = "Claim Date After Policy Expiration"
+            snippet = f"Claim date {claim_date} is after policy expiration date {expiration_date}"
+            content = f"Policy status: {policy_status}, Expires: {expiration_date}, Claim date: {claim_date} is after expiration"
+            rationale = f"Claim date {claim_date} is after policy expiration date {expiration_date}"
+        elif claim_date and effective_date:
+            try:
+                eff_date = datetime.strptime(effective_date, "%Y-%m-%d").date() if isinstance(effective_date, str) else effective_date
+                if claim_date < eff_date:
+                    title = "Claim Date Before Policy Effective Date"
+                    snippet = f"Claim date {claim_date} is before policy effective date {effective_date}"
+                    content = f"Policy status: {policy_status}, Effective: {effective_date}, Claim date: {claim_date} is before effective date"
+                    rationale = f"Claim date {claim_date} is before policy effective date {effective_date}"
+                else:
+                    title = "Policy Not Active or Outside Coverage Period"
+                    snippet = f"Policy {policy_number} is not active or claim date is outside coverage period"
+                    content = f"Policy status: {policy_status}, Active: {is_active}, Effective: {effective_date}, Expires: {expiration_date}, Claim date: {claim_date}"
+                    rationale = "Policy is not active or claim date outside coverage period"
+            except:
+                title = "Policy Not Active or Outside Coverage Period"
+                snippet = f"Policy {policy_number} is not active or claim date is outside coverage period"
+                content = f"Policy status: {policy_status}, Active: {is_active}, Effective: {effective_date}, Expires: {expiration_date}, Claim date: {claim_date}"
+                rationale = "Policy is not active or claim date outside coverage period"
+        else:
+            title = "Policy Not Active or Outside Coverage Period"
+            snippet = f"Policy {policy_number} is not active or claim date is outside coverage period"
+            content = f"Policy status: {policy_status}, Active: {is_active}, Effective: {effective_date}, Expires: {expiration_date}, Claim date: {claim_date}"
+            rationale = "Policy is not active or claim date outside coverage period"
+        
         return [{
-            "clauseId": "POLICY-INACTIVE",
-            "title": "Policy Not Active or Outside Coverage Period",
-            "snippet": f"Policy {policy_number} is not active or claim date is outside coverage period",
-            "content": f"Policy status: {policy_status}, Active: {is_active}, Effective: {effective_date}, Expires: {expiration_date}, Claim date: {claim_date}",
+            "clauseId": "POLICY-INACTIVE" if not is_expired else "POLICY-EXPIRED",
+            "title": title,
+            "snippet": snippet,
+            "content": content,
             "section": "Policy Status",
             "score": 0.0,
             "similarity": 0.0,
-            "rationale": "Policy is not active or claim date outside coverage period",
+            "rationale": rationale,
             "sourceRef": "Policy Database",
             "sourceDocument": "Policy Record",
             "coverage_applicable": False,
             "confidence_score": 0.0,
-            "recommendation": "AUTO_DENY"
+            "recommendation": "AUTO_DENY",
+            "policy_status": policy_status,
+            "is_expired": is_expired,
+            "expiration_date": expiration_date,
+            "current_date": str(current_date)
         }]
     
     # Step 3: Policy Details Extraction

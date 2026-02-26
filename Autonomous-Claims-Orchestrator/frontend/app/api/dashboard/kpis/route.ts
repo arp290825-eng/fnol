@@ -1,14 +1,27 @@
 /**
  * GET /api/dashboard/kpis
- * Delegates to backend dashboard (Python).
+ * Proxies to FastAPI backend server.
  */
 import { NextResponse } from 'next/server'
-import { runPython } from '@/lib/backend'
+import { getApiUrl } from '@/lib/api-config'
 
 export async function GET() {
   try {
-    const stdout = await runPython('backend.dashboard', ['stats'])
-    const kpis = JSON.parse(stdout.trim())
+    // Proxy to FastAPI server
+    const response = await fetch(getApiUrl('api/dashboard/kpis'), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      return NextResponse.json(
+        { error: error.detail || 'Failed to load dashboard KPIs' },
+        { status: response.status }
+      )
+    }
+
+    const kpis = await response.json()
     return NextResponse.json(kpis)
   } catch (error) {
     console.error('Dashboard KPIs error:', error)

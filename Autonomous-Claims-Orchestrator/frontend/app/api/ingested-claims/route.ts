@@ -1,18 +1,31 @@
 /**
  * GET /api/ingested-claims
- * Delegates to backend ingested_claims (Python).
+ * Proxies to FastAPI backend server.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { runPython } from '@/lib/backend'
+import { getApiUrl } from '@/lib/api-config'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const full = searchParams.get('full') === 'true'
 
-    const cmd = full ? 'list-full' : 'list'
-    const stdout = await runPython('backend.ingested_claims', [cmd])
-    const data = JSON.parse(stdout.trim())
+    // Proxy to FastAPI server
+    const url = getApiUrl(`api/ingested-claims${full ? '?full=true' : ''}`)
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      return NextResponse.json(
+        { error: error.detail || 'Failed to fetch ingested claims' },
+        { status: response.status }
+      )
+    }
+
+    const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error fetching ingested claims:', error)

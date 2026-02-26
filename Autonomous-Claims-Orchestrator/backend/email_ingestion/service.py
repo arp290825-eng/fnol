@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import imaplib
 
 from backend.common.config import ENV_FILE
+from backend.faq_resolution.service import process_faq_email
 from backend.ingested_claims.service import (
     add_dedup_keys_to_set,
     get_existing_message_ids,
@@ -376,6 +377,8 @@ def sync_inbox() -> Dict[str, Any]:
         "scanned": 0,
         "skippedNoFnol": 0,
         "skippedDuplicate": 0,
+        "faqAnswered": 0,
+        "faqError": 0,
         "errors": [],
     }
 
@@ -471,6 +474,23 @@ def sync_inbox() -> Dict[str, Any]:
                     print(f"DEBUG: Body length: {len(body_text)}, preview: '{body_text[:150]}'", file=sys.stderr)
                     has_keywords = _has_relevant_keywords(subject, body_text)
                     print(f"DEBUG: Has relevant keywords: {has_keywords}", file=sys.stderr)
+                
+                # Check if this is an FAQ query - if so, process FAQ and skip ingestion
+                try:
+                    faq_result = process_faq_email(from_addr, to_addr, subject, body_text)
+                    if faq_result.get("is_faq", False):
+                        if faq_result.get("answered", False):
+                            result["faqAnswered"] = result.get("faqAnswered", 0) + 1
+                            print(f"FAQ query detected and answered: {subject[:80]}", file=sys.stderr)
+                        else:
+                            result["faqError"] = result.get("faqError", 0) + 1
+                            error_msg = faq_result.get("error", "Unknown error")
+                            print(f"FAQ query detected but failed to answer: {error_msg}", file=sys.stderr)
+                        # Skip ingestion for FAQ queries - they've been answered
+                        continue
+                except Exception as e:
+                    # If FAQ processing fails, log but continue with normal flow
+                    print(f"FAQ processing error (continuing with normal flow): {e}", file=sys.stderr)
                 
                 if not _classify_fnol_by_llm(subject, body_text):
                     result["skippedNoFnol"] = result.get("skippedNoFnol", 0) + 1

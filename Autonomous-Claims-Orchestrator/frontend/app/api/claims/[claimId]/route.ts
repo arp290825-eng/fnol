@@ -1,9 +1,9 @@
 /**
  * GET /api/claims/[claimId]
- * Delegates to backend dashboard (Python).
+ * Proxies to FastAPI backend server.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { runPython } from '@/lib/backend'
+import { getApiUrl } from '@/lib/api-config'
 
 export async function GET(
   _request: NextRequest,
@@ -17,15 +17,23 @@ export async function GET(
         { status: 400 }
       )
     }
-    const stdout = await runPython('backend.dashboard', ['get', decodeURIComponent(claimId)])
-    const trimmed = stdout.trim()
-    if (trimmed === 'null') {
+
+    // Proxy to FastAPI server
+    const encodedClaimId = encodeURIComponent(claimId)
+    const response = await fetch(getApiUrl(`api/claims/${encodedClaimId}`), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
       return NextResponse.json(
-        { error: 'Claim not found' },
-        { status: 404 }
+        { error: error.detail || 'Claim not found' },
+        { status: response.status }
       )
     }
-    const claim = JSON.parse(trimmed)
+
+    const claim = await response.json()
     return NextResponse.json(claim)
   } catch (error) {
     console.error('Load claim error:', error)

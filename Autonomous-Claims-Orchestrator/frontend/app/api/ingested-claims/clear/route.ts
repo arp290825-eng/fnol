@@ -1,14 +1,28 @@
 /**
  * POST /api/ingested-claims/clear
- * Delegates to backend ingested_claims (Python).
+ * Proxies to FastAPI backend server.
  */
 import { NextResponse } from 'next/server'
-import { runPython } from '@/lib/backend'
+import { getApiUrl } from '@/lib/api-config'
 
 export async function POST() {
   try {
-    await runPython('backend.ingested_claims', ['clear'])
-    return NextResponse.json({ success: true })
+    // Proxy to FastAPI server
+    const response = await fetch(getApiUrl('api/ingested-claims/clear'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      return NextResponse.json(
+        { error: error.detail || 'Failed to clear claims' },
+        { status: response.status }
+      )
+    }
+
+    const result = await response.json()
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Clear ingested claims error:', error)
     return NextResponse.json(

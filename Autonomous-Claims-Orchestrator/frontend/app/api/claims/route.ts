@@ -1,16 +1,29 @@
 /**
  * GET/POST /api/claims
- * Delegates to backend dashboard (Python).
+ * Proxies to FastAPI backend server.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { runPython } from '@/lib/backend'
+import { getApiUrl } from '@/lib/api-config'
 import type { ClaimData } from '@/types/claims'
 
 /** GET /api/claims - List processed claim summaries */
 export async function GET() {
   try {
-    const stdout = await runPython('backend.dashboard', ['list'])
-    const summaries = JSON.parse(stdout.trim())
+    // Proxy to FastAPI server
+    const response = await fetch(getApiUrl('api/claims'), {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      return NextResponse.json(
+        { error: error.detail || 'Failed to list claims' },
+        { status: response.status }
+      )
+    }
+
+    const summaries = await response.json()
     return NextResponse.json(summaries)
   } catch (error) {
     console.error('List claims error:', error)
@@ -31,16 +44,24 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    const input = JSON.stringify(body)
-    const stdout = await runPython('backend.dashboard', ['save'], input)
-    const parsed = JSON.parse(stdout.trim())
-    if (parsed.error) {
-      throw new Error(parsed.error)
-    }
-    return NextResponse.json({
-      success: true,
-      claimId: body.claimId,
+
+    // Proxy to FastAPI server
+    const response = await fetch(getApiUrl('api/claims'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      return NextResponse.json(
+        { error: error.detail || 'Failed to save claim' },
+        { status: response.status }
+      )
+    }
+
+    const result = await response.json()
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Save claim error:', error)
     return NextResponse.json(

@@ -1,9 +1,9 @@
 /**
  * POST /api/process-claim
- * Delegates to backend process_claim orchestrator (Python).
+ * Proxies to FastAPI backend server.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { runPython } from '@/lib/backend'
+import { getApiUrl } from '@/lib/api-config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,12 +17,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const stdout = await runPython('backend.process_claim', [ingestedClaimId])
-    const claimData = JSON.parse(stdout.trim())
-    if (claimData.error) {
-      return NextResponse.json({ error: claimData.error }, { status: 404 })
+    // Proxy to FastAPI server
+    const response = await fetch(getApiUrl('api/process-claim'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ingestedClaimId }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: data.detail || data.error || 'Processing failed' },
+        { status: response.status }
+      )
     }
-    return NextResponse.json(claimData)
+
+    return NextResponse.json(data)
   } catch (error) {
     console.error('Process claim error:', error)
     return NextResponse.json(

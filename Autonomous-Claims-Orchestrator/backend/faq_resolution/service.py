@@ -17,8 +17,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.common.config import ENV_FILE, PROJECT_ROOT
 
-# FAQ CSV file location
-FAQ_CSV_FILE = PROJECT_ROOT / "data" / "FAQ.csv"
+# FAQ CSV file location - Use environment variable with fallback
+_FAQ_CSV_FILE_ENV = os.getenv("FAQ_CSV_FILE")
+if _FAQ_CSV_FILE_ENV:
+    FAQ_CSV_FILE = Path(_FAQ_CSV_FILE_ENV)
+else:
+    FAQ_CSV_FILE = PROJECT_ROOT / "data" / "FAQ.csv"
 
 
 def _load_env() -> None:
@@ -29,7 +33,7 @@ def _load_env() -> None:
                 line = line.strip()
                 if line and not line.startswith("#") and "=" in line:
                     key, _, val = line.partition("=")
-                    os.environ.setdefault(key.strip(), val.strip().strip("'\"""))
+                    os.environ.setdefault(key.strip(), val.strip().strip("'\""))
 
 
 def _load_faq_data() -> List[Dict[str, str]]:

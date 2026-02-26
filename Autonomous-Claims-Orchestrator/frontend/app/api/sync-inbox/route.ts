@@ -1,14 +1,34 @@
 /**
  * POST /api/sync-inbox
- * Delegates to backend email_ingestion (Python).
+ * Proxies to FastAPI backend server.
  */
 import { NextResponse } from 'next/server'
-import { runPython } from '@/lib/backend'
+import { getApiUrl } from '@/lib/api-config'
 
 export async function POST() {
   try {
-    const stdout = await runPython('backend.email_ingestion', [])
-    const result = JSON.parse(stdout.trim())
+    // Proxy to FastAPI server
+    const response = await fetch(getApiUrl('api/sync-inbox'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      return NextResponse.json(
+        {
+          success: false,
+          ingested: 0,
+          scanned: 0,
+          skippedNoFnol: 0,
+          skippedDuplicate: 0,
+          errors: [error.detail || String(error)],
+        },
+        { status: response.status }
+      )
+    }
+
+    const result = await response.json()
     return NextResponse.json({
       success: result.success,
       ingested: result.ingested,

@@ -6,6 +6,7 @@ document analysis, policy assessment.
 """
 
 import time
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from backend.decision.policy_clauses import (
@@ -159,6 +160,21 @@ def build_decision_pack(
             customer = find_customer_by_policy(policy_number)
             policy = get_policy_by_number(policy_number)
             if customer and policy:
+                # Validate policy status - check if expired
+                policy_status = policy.get("policy_status", "").upper()
+                expiration_date = policy.get("expiration_date")
+                current_date = datetime.now(timezone.utc).date()
+                
+                # CRITICAL: Override policy_status if expiration_date is before current_date
+                # This ensures the displayed status matches the actual expiration check
+                if expiration_date:
+                    try:
+                        exp_date = datetime.strptime(expiration_date, "%Y-%m-%d").date() if isinstance(expiration_date, str) else expiration_date
+                        if exp_date < current_date:
+                            policy_status = "EXPIRED"  # Override JSON value
+                    except:
+                        pass  # If date parsing fails, use original status
+                
                 policy_holder_info = {
                     "customer_id": customer.get("customer_id"),
                     "first_name": customer.get("first_name"),
@@ -178,7 +194,7 @@ def build_decision_pack(
                     "credit_score": customer.get("credit_score"),
                     "policy_number": policy_number,
                     "policy_type": policy.get("policy_type"),
-                    "policy_status": policy.get("policy_status"),
+                    "policy_status": policy_status,  # Use validated status (may be EXPIRED)
                     "effective_date": policy.get("effective_date"),
                     "expiration_date": policy.get("expiration_date"),
                     "premium_amount": policy.get("premium_amount"),
