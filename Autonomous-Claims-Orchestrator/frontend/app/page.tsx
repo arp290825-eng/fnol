@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
+import FAQPage from '@/components/FAQPage'
 import HomePage from '@/components/HomePage'
 import ReviewPage from '@/components/ReviewPage'
 import DecisionPage from '@/components/DecisionPage'
@@ -69,6 +70,8 @@ export default function Home() {
 
   const renderCurrentStage = () => {
     switch (currentStage) {
+      case 'faq':
+        return <FAQPage />
       case 'home':
         return (
           <HomePage
@@ -113,7 +116,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white relative">
       <Header currentStage={currentStage} onStageChange={handleStageChange} />
-      <main className="container mx-auto px-8 py-16 relative z-10">
+      <main
+        className={
+          currentStage === 'home' || currentStage === 'faq'
+            ? 'relative z-10'
+            : 'container mx-auto px-8 py-16 relative z-10'
+        }
+      >
         {renderCurrentStage()}
       </main>
     </div>

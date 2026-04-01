@@ -8,6 +8,7 @@ import {
   BookOpen, 
   CheckCircle,
   AlertTriangle,
+  XCircle,
   ArrowRight,
   ArrowLeft,
   Shield,
@@ -236,13 +237,15 @@ export default function ReviewPage({ claimData, onNextStage, onPreviousStage, on
           className="btn-primary flex items-center space-x-2 mx-auto"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Ingest</span>
+          <span>Back to Inbox</span>
         </button>
       </motion.div>
     )
   }
 
   const { decisionPack, claimId, status, ingestedClaimId } = claimData
+  const isDeskRejected = (status || '').toLowerCase().includes('desk_reject') || (status || '').toLowerCase() === 'desk_rejected'
+  const deskRejectionReason = (claimData as any).deskRejectionReason as string | undefined
   const { 
     evidence = [], 
     documents = [], 
@@ -322,9 +325,32 @@ export default function ReviewPage({ claimData, onNextStage, onPreviousStage, on
         onBack={onPreviousStage}
         onContinue={onNextStage}
         continueLabel="Continue"
+        continueDisabled={isDeskRejected}
         showClaimDropdown
         onClaimSelect={onLoadClaim}
       />
+
+      {/* Desk-Rejection Banner */}
+      {isDeskRejected && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-8 mb-0 mt-2 rounded-xl border-2 border-[#FCA5A5] bg-[#FEF2F2] px-6 py-4 flex items-start gap-4"
+        >
+          <XCircle className="w-6 h-6 text-[#DC2626] flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-[#991B1B] mb-1">Claim Desk-Rejected — Cannot Proceed to Decision</p>
+            <p className="text-sm text-[#B91C1C]">
+              {deskRejectionReason
+                ? deskRejectionReason
+                : 'This claim has been automatically desk-rejected (e.g. policy expired or not found). A rejection notice has been sent to the claimant.'}
+            </p>
+            <p className="text-xs text-[#DC2626] mt-1 font-medium">
+              The &ldquo;Continue&rdquo; button is disabled. No further action is required.
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Main Content - Three Column Layout */}
       <div className="px-8 py-8">

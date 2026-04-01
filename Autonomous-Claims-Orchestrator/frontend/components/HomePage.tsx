@@ -6,19 +6,35 @@ import {
   FileText,
   Image,
   AlertCircle,
-  Play,
   Clock,
   CheckCircle,
-  Inbox,
   RefreshCw,
   Trash2,
+  Paperclip,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { ClaimData } from '@/types/claims'
+
+/** One automatic IMAP sync per browser tab session (avoids React Strict Mode / remount double sync). */
+const AUTO_SYNC_SESSION_KEY = 'fnol_claim_inbox_auto_sync_v1'
 
 interface HomePageProps {
   onProcessClaim: (data: ClaimData) => void
   isProcessing: boolean
   setIsProcessing: (processing: boolean) => void
+}
+
+interface MailChainEntry {
+  from: string
+  fromLabel: string
+  to: string
+  subject: string
+  body: string
+  dateIso?: string
+  dateDisplay?: string
+  attachmentCount?: number
+  isOutbound?: boolean
 }
 
 interface IngestedClaim {
@@ -27,8 +43,8 @@ interface IngestedClaim {
   from: string
   to: string
   subject: string
-  /** Original email body text - NOT extracted document content */
   emailBody: string
+  mailChain?: MailChainEntry[]
   attachments: Array<{ name: string; path: string; size: number; mimeType: string }>
   createdAt: string
   source: 'sendgrid' | 'demo' | 'imap'
@@ -38,19 +54,189 @@ interface PolicyOption {
   id: string
   policyNumber: string
   subject: string
+  from?: string
+  createdAt?: string
+  source?: string
+}
+
+function initialsFromLabel(label: string): string {
+  const parts = label.replace(/[<>]/g, ' ').trim().split(/\s+/)
+  if (!parts.length) return '?'
+  const a = parts[0]?.[0] || ''
+  const b = parts.length > 1 ? parts[parts.length - 1][0] || '' : parts[0]?.[1] || ''
+  return (a + b).toUpperCase().slice(0, 2) || '?'
+}
+
+function formatListTime(iso: string | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function formatDetailDate(dateIso?: string, dateDisplay?: string): string {
+  if (dateDisplay?.trim()) return dateDisplay.trim()
+  if (!dateIso) return '—'
+  const d = new Date(dateIso)
+  if (Number.isNaN(d.getTime())) return dateIso
+  return d.toLocaleString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function sourceLabel(src: string | undefined): string {
+  const s = (src || '').toLowerCase()
+  if (s === 'imap') return 'IMAP inbox'
+  if (s === 'sendgrid') return 'Inbound email'
+  if (s === 'demo') return 'Demo data'
+  if (s === 'imap_faq') return 'FAQ auto-reply'
+  return src || '—'
+}
+
+type BodyBlock =
+  | { kind: 'quote'; lines: string[] }
+  | { kind: 'plain'; lines: string[] }
+  | { kind: 'separator' }
+
+const OUTLOOK_ORIGINAL = /^\s*-{5,}\s*Original Message\s*-{5,}\s*$/i
+const OUTLOOK_UNDERSCORE = /^\s*_{32,}\s*$/
+
+/** Parses body into quotes, Outlook separators, and plain runs for structured rendering. */
+function parseMailBodyBlocks(text: string): BodyBlock[] {
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  const blocks: BodyBlock[] = []
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+    if (OUTLOOK_ORIGINAL.test(line) || OUTLOOK_UNDERSCORE.test(line)) {
+      blocks.push({ kind: 'separator' })
+      i += 1
+      continue
+    }
+    if (/^>+\s?/.test(line)) {
+      const q: string[] = []
+      while (i < lines.length && /^>+\s?/.test(lines[i])) {
+        q.push(lines[i])
+        i += 1
+      }
+      blocks.push({ kind: 'quote', lines: q })
+      continue
+    }
+    const p: string[] = []
+    while (
+      i < lines.length &&
+      !/^>+\s?/.test(lines[i]) &&
+      !OUTLOOK_ORIGINAL.test(lines[i]) &&
+      !OUTLOOK_UNDERSCORE.test(lines[i])
+    ) {
+      p.push(lines[i])
+      i += 1
+    }
+    if (p.length) blocks.push({ kind: 'plain', lines: p })
+  }
+  return blocks
+}
+
+/** Renders structured message body: paragraphs, reply separators, quoted history. */
+function FormattedMailBody({ text, outbound }: { text: string; outbound: boolean }) {
+  if (!text?.trim()) {
+    return <p className="text-[#94A3B8] text-sm py-2">No body text.</p>
+  }
+  const blocks = parseMailBodyBlocks(text)
+  const quoteBg = outbound ? 'bg-indigo-50/90 border-indigo-200' : 'bg-slate-100 border-slate-300'
+  return (
+    <div className="space-y-4 text-[15px] text-slate-800 leading-[1.6]">
+      {blocks.map((b, i) => {
+        if (b.kind === 'separator') {
+          return (
+            <div
+              key={i}
+              className="flex items-center gap-3 py-1"
+              role="separator"
+              aria-label="Earlier message"
+            >
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 shrink-0">
+                Earlier message
+              </span>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+          )
+        }
+        if (b.kind === 'quote') {
+          const dequoted = b.lines.map((l) => l.replace(/^>+\s?/, '')).join('\n')
+          return (
+            <blockquote
+              key={i}
+              className={`border-l-[3px] pl-4 py-3 pr-3 rounded-r-lg text-sm text-slate-600 shadow-sm ${quoteBg}`}
+            >
+              <div className="whitespace-pre-wrap font-sans">{dequoted}</div>
+            </blockquote>
+          )
+        }
+        const chunk = b.lines.join('\n').trimEnd()
+        if (!chunk.trim()) return <div key={i} className="h-1" />
+        const paras = chunk.split(/\n{2,}/).filter((p) => p.trim())
+        return (
+          <div key={i} className="space-y-3">
+            {paras.map((para, j) => (
+              <p key={j} className="whitespace-pre-wrap text-slate-800">
+                {para.trim()}
+              </p>
+            ))}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function displaySender(entry: MailChainEntry): string {
+  if (entry.isOutbound) return 'Claims Team'
+  return entry.fromLabel || entry.from || 'Unknown'
+}
+
+function threadSnippet(entry: MailChainEntry): string {
+  const line = entry.body?.split('\n').find((l) => l.trim()) || entry.subject || ''
+  const t = line.trim()
+  return t.length > 72 ? `${t.slice(0, 72)}…` : t
 }
 
 export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing }: HomePageProps) {
   const [policyOptions, setPolicyOptions] = useState<PolicyOption[]>([])
+  const [processedIngestedIds, setProcessedIngestedIds] = useState<Set<string>>(new Set())
   const [selectedClaim, setSelectedClaim] = useState<IngestedClaim | null>(null)
+  const [selectedId, setSelectedId] = useState<string>('')
   const [loadingPolicies, setLoadingPolicies] = useState(true)
   const [loadingClaim, setLoadingClaim] = useState(false)
   const [syncingInbox, setSyncingInbox] = useState(false)
   const [syncMessage, setSyncMessage] = useState('')
+  const [syncMessageSuccess, setSyncMessageSuccess] = useState(false)
   const [clearingClaims, setClearingClaims] = useState(false)
   const [error, setError] = useState('')
   const [processingSteps, setProcessingSteps] = useState<string[]>([])
   const [currentStep, setCurrentStep] = useState('')
+  const [expandedThreadIdx, setExpandedThreadIdx] = useState<number | null>(null)
+
+  const fetchProcessedIds = useCallback(async () => {
+    try {
+      const res = await fetch('/api/claims')
+      if (!res.ok) return
+      const rows = (await res.json()) as Array<{ ingestedClaimId?: string }>
+      const next = new Set<string>()
+      for (const r of rows) {
+        if (r.ingestedClaimId) next.add(r.ingestedClaimId)
+      }
+      setProcessedIngestedIds(next)
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   const fetchPolicyOptions = async () => {
     setLoadingPolicies(true)
@@ -58,7 +244,7 @@ export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing
     try {
       const res = await fetch('/api/ingested-claims')
       if (!res.ok) throw new Error('Failed to load claims')
-      const data = await res.json()
+      const data = (await res.json()) as PolicyOption[]
       setPolicyOptions(data)
     } catch (err) {
       setError('Unable to load ingested claims. Please try again.')
@@ -72,51 +258,97 @@ export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing
     setSyncingInbox(true)
     setError('')
     setSyncMessage('')
+    setSyncMessageSuccess(false)
     try {
       const res = await fetch('/api/sync-inbox', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.errors?.[0] || 'Sync failed')
-      if (data.ingested > 0) {
-        const parts = [`${data.ingested} new claim(s) ingested`]
-        if (data.skippedDuplicate > 0) parts.push(`${data.skippedDuplicate} duplicate(s) skipped`)
+      if (data.ingested > 0 || (data.mergedFollowUp ?? 0) > 0) {
+        const parts: string[] = []
+        if (data.ingested > 0) parts.push(`${data.ingested} new claim(s) ingested`)
+        if ((data.mergedFollowUp ?? 0) > 0) {
+          parts.push(`${data.mergedFollowUp} follow-up(s) merged into existing claims`)
+        }
+        if (data.skippedDuplicate > 0) {
+          parts.push(`${data.skippedDuplicate} already in inbox (exact duplicates)`)
+        }
+        if ((data.skippedComplaintCorrespondence ?? 0) > 0) {
+          parts.push(
+            `${data.skippedComplaintCorrespondence} non-FNOL (retail/complaint) skipped`,
+          )
+        }
+        if (data.hint) parts.push(data.hint)
         setSyncMessage(parts.join('. '))
+        setSyncMessageSuccess(true)
       } else if (data.scanned > 0 && data.skippedNoFnol === data.scanned) {
-        setSyncMessage(`Scanned ${data.scanned} — none matched FNOL (fnol/claim/damage)`)
-      } else if (data.scanned > 0 && data.skippedDuplicate === data.scanned) {
-        setSyncMessage(`Scanned ${data.scanned} — all already ingested`)
+        setSyncMessage(`Scanned ${data.scanned} — none matched claim / FNOL filters`)
+        setSyncMessageSuccess(false)
+      } else if (
+        data.scanned > 0 &&
+        (data.skippedDuplicate ?? 0) + (data.mergedFollowUp ?? 0) === data.scanned
+      ) {
+        const parts: string[] = [`Scanned ${data.scanned}`]
+        if ((data.mergedFollowUp ?? 0) > 0)
+          parts.push(`${data.mergedFollowUp} follow-up(s) added to mail chains`)
+        if ((data.skippedDuplicate ?? 0) > 0)
+          parts.push(`${data.skippedDuplicate} already in inbox`)
+        setSyncMessage(parts.join(' — '))
+        setSyncMessageSuccess((data.mergedFollowUp ?? 0) > 0)
       } else if (data.scanned === 0) {
         setSyncMessage(data.hint || 'No emails to sync')
+        setSyncMessageSuccess(false)
       } else {
-        setSyncMessage('No new FNOL emails to ingest')
+        setSyncMessage(data.hint ? data.hint : 'No new emails since last sync')
+        setSyncMessageSuccess(false)
       }
       await fetchPolicyOptions()
+      await fetchProcessedIds()
       if (data.errors?.length) setError(data.errors.join('; '))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sync inbox')
     } finally {
       setSyncingInbox(false)
     }
-  }, [])
+  }, [fetchProcessedIds])
 
   useEffect(() => {
-    // Load existing policies first, then auto-sync inbox on page load
     const initialize = async () => {
       await fetchPolicyOptions()
-      await handleSyncInbox()
+      await fetchProcessedIds()
+      const alreadySynced =
+        typeof window !== 'undefined' && sessionStorage.getItem(AUTO_SYNC_SESSION_KEY) === '1'
+      if (!alreadySynced) {
+        await handleSyncInbox()
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(AUTO_SYNC_SESSION_KEY, '1')
+        }
+      }
     }
-    initialize()
-  }, [handleSyncInbox])
+    void initialize()
+  }, [handleSyncInbox, fetchProcessedIds])
+
+  useEffect(() => {
+    const chain = selectedClaim?.mailChain
+    if (chain && chain.length > 0) {
+      setExpandedThreadIdx(chain.length - 1)
+    } else {
+      setExpandedThreadIdx(null)
+    }
+  }, [selectedClaim?.id])
 
   const handleClearClaims = async () => {
     if (!confirm('Clear all ingested claims? This cannot be undone.')) return
     setClearingClaims(true)
     setError('')
     setSyncMessage('')
+    setSyncMessageSuccess(false)
     try {
       const res = await fetch('/api/ingested-claims/clear', { method: 'POST' })
       if (!res.ok) throw new Error('Clear failed')
       setSelectedClaim(null)
+      setSelectedId('')
       await fetchPolicyOptions()
+      await fetchProcessedIds()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to clear')
     } finally {
@@ -124,8 +356,8 @@ export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing
     }
   }
 
-
-  const handleSelectPolicy = async (claimId: string) => {
+  const handleSelectClaim = async (claimId: string) => {
+    setSelectedId(claimId)
     if (!claimId) {
       setSelectedClaim(null)
       return
@@ -135,7 +367,7 @@ export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing
     try {
       const res = await fetch(`/api/ingested-claims/${claimId}`)
       if (!res.ok) throw new Error('Failed to load claim')
-      const data = await res.json()
+      const data = (await res.json()) as IngestedClaim
       setSelectedClaim(data)
     } catch (err) {
       setError('Unable to load claim details.')
@@ -153,7 +385,7 @@ export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing
     setCurrentStep('')
 
     const steps = [
-      'Loading claim data from ingested inbox...',
+      'Loading FNOL submission from claim inbox...',
       'Extracting information from email and attachments...',
       'Analyzing documents and images (Vision)...',
       'Policy Grounding: Matching claim against policy clause database...',
@@ -183,260 +415,382 @@ export default function HomePage({ onProcessClaim, isProcessing, setIsProcessing
   }
 
   const canProcess = !!selectedClaim && !isProcessing
+  const total = policyOptions.length
+  const processedCount = policyOptions.filter((p) => processedIngestedIds.has(p.id)).length
+  const pendingCount = total - processedCount
+
+  const chain: MailChainEntry[] =
+    selectedClaim?.mailChain && selectedClaim.mailChain.length > 0
+      ? selectedClaim.mailChain
+      : selectedClaim
+        ? [
+            {
+              from: selectedClaim.from,
+              fromLabel: selectedClaim.from || 'Unknown',
+              to: selectedClaim.to,
+              subject: selectedClaim.subject,
+              body: selectedClaim.emailBody || '',
+              dateIso: selectedClaim.createdAt,
+              dateDisplay: '',
+              attachmentCount: selectedClaim.attachments?.length ?? 0,
+              isOutbound: false,
+            },
+          ]
+        : []
 
   return (
-    <div className="relative min-h-screen">
-      {/* Grid Background */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(37, 99, 235, 0.06) 1px, transparent 1px)
-          `,
-          backgroundSize: '48px 48px',
-        }}
-      />
-
-      <div className="max-w-6xl mx-auto relative z-10">
-        {/* Hero Section */}
-        <div className="text-center mb-16 pt-12 relative">
-          <div className="absolute inset-0 -top-20 -bottom-20 flex items-center justify-center pointer-events-none">
-            <div className="w-full max-w-2xl h-64 bg-gradient-radial from-[#2563EB]/10 via-[#7C3AED]/5 to-transparent rounded-full blur-3xl" />
-          </div>
-          <div className="relative z-10">
-            <span className="inline-block text-xs font-semibold text-[#6366F1] uppercase tracking-widest mb-6">
-              FNOL Auto-Ingestion
-            </span>
-            <h1 className="text-6xl font-bold text-[#0F172A] mb-6 tracking-tight leading-tight">
-              Claims Processing
-              <br />
-              <span className="bg-gradient-to-r from-[#2563EB] to-[#7C3AED] bg-clip-text text-transparent">
-                Inbox Portal
-              </span>
-            </h1>
-            <p className="text-xl text-[#475569] max-w-2xl mx-auto mb-3 font-medium leading-relaxed">
-              Select a policy number to review and process the corresponding FNOL submission
-            </p>
-            <p className="text-base text-[#64748B] max-w-xl mx-auto">
-              First notice of loss submissions and supporting documentation are ingested automatically
-            </p>
-          </div>
-        </div>
-
-        {/* Action Bar: Auto Sync Status & Clear All */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10 relative z-10">
-          <div className="flex items-center gap-3">
-            {syncingInbox && (
-              <div className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-[#6366F1] bg-white border border-[#E2E8F0] rounded-xl">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                Auto-syncing inbox...
-              </div>
-            )}
-            <button
-              onClick={handleClearClaims}
-              disabled={clearingClaims || loadingPolicies || policyOptions.length === 0}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[#64748B] bg-white border border-[#E2E8F0] hover:border-[#dc2626] hover:text-[#dc2626] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Clear all ingested claims"
-            >
-              <Trash2 className={`w-4 h-4 ${clearingClaims ? 'animate-pulse' : ''}`} />
-              Clear All
-            </button>
-          </div>
-          {syncMessage && (
-            <span className="text-sm text-[#059669] font-medium">{syncMessage}</span>
-          )}
-        </div>
-
-        {/* Policy Selection & Content */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-16 relative z-10">
-          {/* Left: Policy Selector & Email Preview */}
-          <div className="card-glass p-8 h-full flex flex-col relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#2563EB]/5 via-transparent to-[#7C3AED]/5 pointer-events-none" />
-            <div className="relative z-10 flex flex-col h-full">
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="p-2 bg-gradient-to-br from-[#2563EB]/10 to-[#7C3AED]/10 rounded-lg">
-                  <Inbox className="w-5 h-5 text-[#6366F1]" />
-                </div>
-                <h2 className="text-sm font-semibold text-[#475569] uppercase tracking-wider">
-                  Auto-Ingested FNOL Emails
-                </h2>
-              </div>
-
-              {/* Policy Dropdown */}
-              <div className="space-y-2 mb-6">
-                <label className="block text-sm font-medium text-[#334155]">Policy Number</label>
-                <select
-                  value={selectedClaim?.id ?? ''}
-                  onChange={(e) => handleSelectPolicy(e.target.value)}
-                  disabled={loadingPolicies}
-                  className="w-full px-4 py-3 bg-white/80 border border-[#E2E8F0] rounded-xl text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30 focus:border-[#6366F1] transition-all appearance-none cursor-pointer"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394A3B8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 12px center',
-                    backgroundSize: '20px',
-                    paddingRight: '44px',
-                  }}
-                >
-                  <option value="">
-                    {loadingPolicies ? 'Loading...' : 'Select policy to view FNOL email'}
-                  </option>
-                  {policyOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.policyNumber} — {opt.subject.slice(0, 50)}{opt.subject.length > 50 ? '...' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Email Body (Read-only) */}
-              <div className="flex-1 flex flex-col min-h-0">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Mail className="w-4 h-4 text-[#6366F1]" />
-                  <span className="text-xs font-semibold text-[#475569] uppercase tracking-wider">
-                    Email Content
-                  </span>
-                </div>
-                <div className="flex-1 min-h-[280px] overflow-auto">
-                  {loadingClaim ? (
-                    <div className="flex items-center justify-center h-full text-[#94A3B8]">
-                      <RefreshCw className="w-6 h-6 animate-spin mr-2" />
-                      Loading...
-                    </div>
-                  ) : selectedClaim ? (
-                    <pre className="w-full p-4 bg-white/60 rounded-xl border border-[#E2E8F0] text-sm text-[#334155] whitespace-pre-wrap font-sans leading-relaxed">
-                      {selectedClaim.emailBody || 'No email content available'}
-                    </pre>
-                  ) : (
-                    <div className="h-full flex items-center justify-center p-8 border-2 border-dashed border-[#E2E8F0] rounded-xl bg-white/30 text-[#94A3B8] text-sm text-center">
-                      Select a policy number to view the auto-ingested FNOL email
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Attachments */}
-          <div className="card-glass p-8 h-full flex flex-col relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 via-transparent to-[#2563EB]/5 pointer-events-none" />
-            <div className="relative z-10 flex flex-col h-full">
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="p-2 bg-gradient-to-br from-[#7C3AED]/10 to-[#2563EB]/10 rounded-lg">
-                  <FileText className="w-5 h-5 text-[#6366F1]" />
-                </div>
-                <h2 className="text-sm font-semibold text-[#475569] uppercase tracking-wider">
-                  Attachments
-                </h2>
-              </div>
-
-              <div className="flex-1 min-h-[340px] overflow-auto">
-                {selectedClaim?.attachments && selectedClaim.attachments.length > 0 ? (
-                  <div className="space-y-3">
-                    {selectedClaim.attachments.map((att) => (
-                      <div
-                        key={att.name}
-                        className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-[#E2E8F0] hover:border-[#CBD5E1] hover:shadow-md transition-all"
-                      >
-                        <div className="flex items-center space-x-3 min-w-0 flex-1">
-                          {att.mimeType.startsWith('image/') ? (
-                            <div className="p-2 bg-[#EEF2FF] rounded-lg">
-                              <Image className="w-4 h-4 text-[#6366F1] flex-shrink-0" />
-                            </div>
-                          ) : (
-                            <div className="p-2 bg-[#F3E8FF] rounded-lg">
-                              <FileText className="w-4 h-4 text-[#7C3AED] flex-shrink-0" />
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-[#0F172A] truncate">
-                              {att.name}
-                            </p>
-                            <p className="text-xs text-[#94A3B8] font-medium">
-                              {(att.size / 1024).toFixed(1)} KB
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : selectedClaim ? (
-                  <div className="h-full flex items-center justify-center p-8 border-2 border-dashed border-[#E2E8F0] rounded-xl bg-white/30 text-[#94A3B8] text-sm text-center">
-                    No attachments for this claim
-                  </div>
-                ) : (
-                  <div className="h-full flex items-center justify-center p-8 border-2 border-dashed border-[#E2E8F0] rounded-xl bg-white/30 text-[#94A3B8] text-sm text-center">
-                    Select a policy to view attachments
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 flex items-start space-x-2 p-4 bg-red-50 border border-red-100 rounded-xl">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-white text-[#111827] overflow-hidden">
+      {/* Top strip: sync + actions */}
+      <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-3 border-b border-[#E5E7EB] shrink-0">
+        {syncingInbox && (
+          <span className="flex items-center gap-2 text-sm text-[#6B7280]">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            Syncing…
+          </span>
         )}
-
-        {/* Process Button */}
-        <div className="text-center mb-16 relative z-10">
-          <button
-            onClick={handleProcessClaim}
-            disabled={!canProcess}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-100 transition-transform duration-200"
+        {!syncingInbox && syncMessage && (
+          <span
+            className={`text-sm font-medium ${syncMessageSuccess ? 'text-[#059669]' : 'text-[#6B7280]'}`}
           >
-            {isProcessing ? (
-              <div className="flex items-center space-x-3">
-                <Clock className="w-5 h-5 animate-spin" />
-                <span>Processing...</span>
+            {syncMessage}
+          </span>
+        )}
+        {!syncingInbox && !syncMessage && (
+          <span className="text-sm text-[#6B7280]">No new FNOL emails since last sync</span>
+        )}
+        <button
+          type="button"
+          onClick={() => handleSyncInbox()}
+          disabled={syncingInbox}
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB] disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${syncingInbox ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
+        <button
+          type="button"
+          onClick={handleClearClaims}
+          disabled={clearingClaims || loadingPolicies || policyOptions.length === 0}
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-[#E5E7EB] text-[#374151] hover:border-[#BFDBFE] hover:text-[#1D4ED8] disabled:opacity-50"
+        >
+          <Trash2 className="w-4 h-4" />
+          Clear
+        </button>
+      </div>
+
+      <div className="flex flex-1 min-h-0">
+        {/* Sidebar — FNOL / claim submissions */}
+        <aside className="w-full max-w-[380px] border-r border-[#E5E7EB] flex flex-col bg-[#FAFAFA] shrink-0">
+          <div className="px-4 py-4 border-b border-[#E5E7EB] bg-white">
+            <h2 className="text-lg font-semibold text-[#111827]">Claim Inbox</h2>
+            <p className="text-sm text-[#6B7280] mt-1">
+              <span className="font-medium text-[#374151]">{total}</span> FNOL submission{total !== 1 ? 's' : ''} ·{' '}
+              <span className="font-medium text-[#374151]">{pendingCount}</span> awaiting review ·{' '}
+              <span className="font-medium text-[#374151]">{processedCount}</span> processed
+            </p>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {loadingPolicies ? (
+              <div className="flex items-center justify-center py-16 text-[#9CA3AF] text-sm">
+                <RefreshCw className="w-5 h-5 animate-spin mr-2" />
+                Loading…
+              </div>
+            ) : policyOptions.length === 0 ? (
+              <div className="p-6 text-sm text-[#9CA3AF] text-center">
+                No claim submissions yet. Sync to pull FNOL emails.
               </div>
             ) : (
-              <div className="flex items-center space-x-3">
-                <Play className="w-5 h-5" />
-                <span>Process Claim Insights</span>
-              </div>
+              <ul className="divide-y divide-[#E5E7EB]">
+                {policyOptions.map((opt) => {
+                  const done = processedIngestedIds.has(opt.id)
+                  const active = selectedId === opt.id
+                  const sender = opt.from?.trim() || 'Unknown'
+                  const av = initialsFromLabel(sender)
+                  return (
+                    <li key={opt.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectClaim(opt.id)}
+                        className={`w-full text-left px-4 py-3 flex gap-3 transition-colors ${
+                          active ? 'bg-[#EFF6FF] border-l-[3px] border-l-[#2563EB]' : 'border-l-[3px] border-l-transparent hover:bg-white'
+                        }`}
+                      >
+                        <div
+                          className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold text-white ${
+                            done ? 'bg-[#94A3B8]' : 'bg-gradient-to-br from-[#2563EB] to-[#6366F1]'
+                          }`}
+                        >
+                          {av}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-[#111827] truncate">{sender}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {opt.source && opt.source !== 'demo' && (
+                                <span
+                                  className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-[#F1F5F9] text-[#64748B]"
+                                  title={sourceLabel(opt.source)}
+                                >
+                                  {opt.source === 'imap' ? 'IMAP' : opt.source === 'sendgrid' ? 'Email' : opt.source}
+                                </span>
+                              )}
+                              <span
+                                className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${
+                                  done
+                                    ? 'bg-[#D1FAE5] text-[#065F46]'
+                                    : 'bg-[#EEF2FF] text-[#3730A3]'
+                                }`}
+                              >
+                                {done ? 'Processed' : 'Awaiting'}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-[#6B7280] mt-1">
+                            <span className="text-[#9CA3AF] font-medium uppercase tracking-wide text-[10px] mr-1">
+                              Policy
+                            </span>
+                            <span className="font-mono text-[#374151]">{opt.policyNumber || '—'}</span>
+                          </p>
+                          <p className="text-sm text-[#374151] truncate mt-0.5">{opt.subject}</p>
+                          <div className="flex items-center justify-between mt-1 gap-2">
+                            <span className="text-[10px] text-[#9CA3AF] font-mono truncate" title={opt.id}>
+                              {opt.id}
+                            </span>
+                            <span className="text-xs text-[#9CA3AF] shrink-0 tabular-nums">
+                              {formatListTime(opt.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
-          </button>
-        </div>
+          </div>
+        </aside>
 
-        {/* Processing Steps */}
-        {isProcessing && (
-          <div className="card-glass p-8 relative overflow-hidden z-10">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#EEF2FF]/50 via-transparent to-[#F3E8FF]/50 pointer-events-none" />
-            <div className="relative z-10">
-              <h3 className="text-sm font-semibold text-[#475569] uppercase tracking-wider mb-6">
-                Processing Steps
-              </h3>
-              <div className="space-y-3">
-                {processingSteps.map((step, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-4 p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-[#E2E8F0]"
-                  >
-                    <div className="p-1.5 bg-gradient-to-br from-[#10B981] to-[#059669] rounded-full">
-                      <CheckCircle className="w-4 h-4 text-white flex-shrink-0" />
-                    </div>
-                    <span className="text-sm text-[#334155] font-medium">{step}</span>
+        {/* Main — thread */}
+        <section className="flex-1 flex flex-col min-w-0 bg-white">
+          {!selectedClaim && !loadingClaim ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-[#9CA3AF] px-8">
+              <Mail className="w-12 h-12 mb-4 opacity-40" />
+              <p className="text-sm text-center">
+                Select a claim submission to view the FNOL email thread.
+              </p>
+            </div>
+          ) : loadingClaim ? (
+            <div className="flex-1 flex items-center justify-center text-[#9CA3AF]">
+              <RefreshCw className="w-6 h-6 animate-spin mr-2" />
+              Loading…
+            </div>
+          ) : selectedClaim ? (
+            <>
+              <div className="px-6 py-4 border-b border-[#E5E7EB] flex flex-wrap items-start justify-between gap-4 shrink-0 bg-white">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9CA3AF] mb-1">
+                    Subject line
+                  </p>
+                  <h1 className="text-xl font-semibold text-[#111827] leading-snug">{selectedClaim.subject}</h1>
+                  <div className="flex flex-wrap items-center gap-2 mt-3 text-sm text-[#6B7280]">
+                    <span
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                        processedIngestedIds.has(selectedClaim.id)
+                          ? 'bg-[#D1FAE5] text-[#065F46]'
+                          : 'bg-[#EEF2FF] text-[#3730A3]'
+                      }`}
+                    >
+                      {processedIngestedIds.has(selectedClaim.id) ? 'Processed' : 'Awaiting review'}
+                    </span>
+                    <span className="text-[#D1D5DB]">·</span>
+                    <span className="inline-flex items-center gap-1.5 text-[#374151]">
+                      <Paperclip className="w-3.5 h-3.5 text-[#6B7280]" />
+                      {selectedClaim.attachments?.length ?? 0} file
+                      {(selectedClaim.attachments?.length ?? 0) !== 1 ? 's' : ''}
+                    </span>
                   </div>
-                ))}
-                {currentStep && !processingSteps.includes(currentStep) && (
-                  <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-[#EEF2FF] to-[#F3E8FF] rounded-xl border border-[#C7D2FE]">
-                    <div className="p-1.5 bg-gradient-to-br from-[#6366F1] to-[#7C3AED] rounded-full">
-                      <Clock className="w-4 h-4 text-white animate-spin flex-shrink-0" />
-                    </div>
-                    <span className="text-sm text-[#4338CA] font-semibold">{currentStep}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleProcessClaim}
+                  disabled={!canProcess}
+                  className={`shrink-0 px-5 py-2.5 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    processedIngestedIds.has(selectedClaim.id)
+                      ? 'bg-[#F3F4F6] text-[#6B7280] border-[#E5E7EB]'
+                      : 'bg-[#2563EB] text-white border-[#2563EB] hover:bg-[#1D4ED8] hover:border-[#1D4ED8]'
+                  }`}
+                >
+                  {processedIngestedIds.has(selectedClaim.id) ? 'Claim processed' : 'Process claim'}
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                <div className="max-w-3xl">
+                  <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-5 flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5" />
+                    Thread ({chain.length})
+                  </h2>
+                  <ol className="space-y-5 list-none p-0 m-0">
+                    {chain.map((entry, idx) => {
+                      const expanded = expandedThreadIdx === idx
+                      const outbound = !!entry.isOutbound
+                      const label = displaySender(entry)
+                      const ini = initialsFromLabel(label)
+                      const partSubject =
+                        (entry.subject || '').trim() || selectedClaim.subject || '(No subject)'
+                      return (
+                        <li
+                          key={`${idx}-${entry.dateIso || ''}-${entry.from}`}
+                          className="rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden"
+                        >
+                          <div
+                            className={`px-4 py-3 border-b border-slate-200 ${outbound ? 'bg-indigo-50/50' : 'bg-slate-50/80'}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold text-white shrink-0 ${
+                                  outbound
+                                    ? 'bg-gradient-to-br from-indigo-600 to-violet-600'
+                                    : 'bg-gradient-to-br from-blue-600 to-indigo-500'
+                                }`}
+                              >
+                                {ini}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2 justify-between">
+                                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                    <span className="text-sm font-semibold text-slate-900">{label}</span>
+                                    {outbound && (
+                                      <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 shrink-0">
+                                        Outbound
+                                      </span>
+                                    )}
+                                    {(entry.attachmentCount ?? 0) > 0 && (
+                                      <span
+                                        className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 shrink-0"
+                                        title={`${entry.attachmentCount} attachment(s)`}
+                                      >
+                                        <Paperclip className="w-3 h-3" />
+                                        {entry.attachmentCount}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <time
+                                    className="text-xs text-slate-500 tabular-nums shrink-0"
+                                    dateTime={entry.dateIso}
+                                  >
+                                    {formatDetailDate(entry.dateIso, entry.dateDisplay)}
+                                  </time>
+                                </div>
+                                <dl className="mt-3 grid grid-cols-[3.75rem_1fr] gap-x-2 gap-y-1.5 text-xs text-left">
+                                  <dt className="text-slate-400 font-medium">From</dt>
+                                  <dd className="text-slate-700 break-all min-w-0">{entry.from || '—'}</dd>
+                                  <dt className="text-slate-400 font-medium">To</dt>
+                                  <dd className="text-slate-700 break-all min-w-0">{entry.to || '—'}</dd>
+                                  <dt className="text-slate-400 font-medium">Subject</dt>
+                                  <dd className="text-slate-700 font-medium break-words min-w-0">
+                                    {partSubject}
+                                  </dd>
+                                </dl>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-white">
+                            {!expanded && (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedThreadIdx(idx)}
+                                className="w-full text-left px-4 py-3 text-xs text-slate-500 hover:bg-slate-50 transition-colors flex items-start justify-between gap-3 border-b border-transparent"
+                              >
+                                <span className="line-clamp-2 leading-relaxed flex-1">{threadSnippet(entry)}</span>
+                                <ChevronDown className="w-4 h-4 shrink-0 text-slate-400 mt-0.5" />
+                              </button>
+                            )}
+                            {expanded && (
+                              <div className="border-t border-slate-100">
+                                <div className="px-4 py-2 flex justify-end border-b border-slate-100 bg-slate-50/50">
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedThreadIdx(null)}
+                                    className="text-xs font-medium text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
+                                  >
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                    Collapse body
+                                  </button>
+                                </div>
+                                <div
+                                  className={`px-5 py-5 ${outbound ? 'bg-indigo-50/20' : 'bg-white'}`}
+                                >
+                                  <FormattedMailBody text={entry.body || ''} outbound={outbound} />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                </div>
+
+                {(selectedClaim.attachments?.length ?? 0) > 0 && (
+                  <div className="max-w-3xl mt-10">
+                    <h3 className="text-xs font-semibold text-[#64748B] uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      Attachments ({selectedClaim.attachments?.length ?? 0})
+                    </h3>
+                    <ul className="space-y-2">
+                      {selectedClaim.attachments.map((att) => (
+                        <li
+                          key={att.name}
+                          className="flex items-center gap-3 px-4 py-3 rounded-lg border border-[#E5E7EB] bg-[#FAFAFA]"
+                        >
+                          {att.mimeType.startsWith('image/') ? (
+                            <Image className="w-4 h-4 text-[#2563EB] shrink-0" />
+                          ) : (
+                            <FileText className="w-4 h-4 text-[#6B7280] shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-[#111827] truncate">{att.name}</p>
+                            <p className="text-xs text-[#9CA3AF]">{(att.size / 1024).toFixed(1)} KB</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        )}
+            </>
+          ) : null}
+        </section>
       </div>
+
+      {error && (
+        <div className="mx-6 mb-4 flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg shrink-0">
+          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {isProcessing && (
+        <div className="border-t border-[#E5E7EB] px-6 py-4 bg-[#FAFAFA] shrink-0">
+          <h3 className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide mb-3">Processing</h3>
+          <div className="space-y-2 max-w-3xl">
+            {processingSteps.map((step, index) => (
+              <div key={index} className="flex items-center gap-3 text-sm text-[#374151]">
+                <CheckCircle className="w-4 h-4 text-[#059669] shrink-0" />
+                {step}
+              </div>
+            ))}
+            {currentStep && !processingSteps.includes(currentStep) && (
+              <div className="flex items-center gap-3 text-sm text-[#2563EB] font-medium">
+                <Clock className="w-4 h-4 animate-spin shrink-0" />
+                {currentStep}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -18,6 +18,8 @@ from backend.decision.policy_grounding_local import (
     get_policy_grounding_from_local_data,
     get_complete_policy_info,
     find_customer_by_policy,
+    find_customer_by_email,
+    get_policies_for_customer,
     get_policy_by_number,
 )
 
@@ -122,21 +124,62 @@ def build_decision_pack(
     claim_id = f"CLM-{ingested_claim_id}"
     fields = extraction.get("extractedFields") or {}
 
+    # Sender email — used as fallback lookup key when no policy number was extracted
+    sender_email = (claim.get("from") or "").strip()
+
+    # Resolve the policy number: extracted field first, then sender-email lookup
+    policy_number = str(fields.get("policyNumber", "")).strip().upper()
+    if not policy_number and sender_email:
+        try:
+            customer_by_email = find_customer_by_email(sender_email)
+            if customer_by_email:
+                cust_policies = get_policies_for_customer(customer_by_email.get("customer_id", ""))
+                if cust_policies:
+                    active_pol = next(
+                        (
+                            p for p in cust_policies
+                            if p.get("is_active") and p.get("policy_status", "").upper() == "ACTIVE"
+                        ),
+                        None,
+                    )
+                    resolved = active_pol or cust_policies[0]
+                    policy_number = resolved.get("policy_number", "").strip().upper()
+                    import sys
+                    print(
+                        f"Policy grounding: resolved policy {policy_number} from sender email {sender_email}",
+                        file=sys.stderr,
+                    )
+        except Exception as _lookup_err:
+            import sys
+            print(f"Email-based policy lookup warning: {_lookup_err}", file=sys.stderr)
+
     policy_start = time.time()
-    # Try to get policy grounding from local data first (customer-specific policy details)
-    # Fall back to generic policy clauses if local data not available
-    policy_grounding = get_policy_grounding_from_local_data(fields)
+    # Try to get policy grounding from local data first (customer-specific policy details).
+    # Pass sender_email so the grounding function can also resolve via email if needed.
+    # Build a grounding-fields dict that includes the resolved policy number.
+    grounding_fields = dict(fields)
+    if policy_number and not grounding_fields.get("policyNumber"):
+        grounding_fields["policyNumber"] = policy_number
+    policy_grounding = get_policy_grounding_from_local_data(grounding_fields, sender_email=sender_email)
     if not policy_grounding:
         # Fallback to generic policy clauses
-        policy_grounding = get_policy_grounding(fields)
+        policy_grounding = get_policy_grounding(grounding_fields)
     policy_duration_ms = int((time.time() - policy_start) * 1000)
-    
+
     # Check if policy is actually active and valid (not inactive/expired/not found)
     # Coverage should only be confirmed if policy is active and has valid grounding results
     policy_is_active = True
     if policy_grounding:
         # Check if any result indicates an inactive/invalid policy
-        inactive_indicators = ["POLICY-INACTIVE", "POLICY-NOT-FOUND", "CUSTOMER-NOT-FOUND", "NO-COVERAGE-DETAILS"]
+        inactive_indicators = [
+            "POLICY-INACTIVE",
+            "POLICY-EXPIRED",
+            "CLAIM-BEFORE-EFFECTIVE-DATE",
+            "CLAIM-AFTER-EXPIRATION",
+            "POLICY-NOT-FOUND",
+            "CUSTOMER-NOT-FOUND",
+            "NO-COVERAGE-DETAILS",
+        ]
         for pg in policy_grounding:
             clause_id = pg.get("clauseId", "")
             confidence = pg.get("confidence_score", pg.get("score", pg.get("similarity", 0)))
@@ -148,13 +191,12 @@ def build_decision_pack(
             if confidence < 0.5:
                 policy_is_active = False
                 break
-    
-    # Coverage is confirmed only if policy number exists, policy grounding found, AND policy is active
-    coverage_confirmed = bool(fields.get("policyNumber")) and len(policy_grounding) > 0 and policy_is_active
-    
+
+    # Coverage is confirmed if a policy was found (via number or email), grounding found, and policy active
+    coverage_confirmed = bool(policy_number) and len(policy_grounding) > 0 and policy_is_active
+
     # Get policy holder details from local database
     policy_holder_info = None
-    policy_number = str(fields.get("policyNumber", "")).strip().upper()
     if policy_number:
         try:
             customer = find_customer_by_policy(policy_number)
@@ -211,7 +253,8 @@ def build_decision_pack(
             import sys
             print(f"Warning: Could not fetch policy holder info: {e}", file=sys.stderr)
     
-    claim_draft = _build_claim_draft(fields, claim, extraction, coverage_confirmed)
+    # Use grounding_fields (which carries the email-resolved policy number if applicable)
+    claim_draft = _build_claim_draft(grounding_fields, claim, extraction, coverage_confirmed)
     ev = extraction.get("evidence", [])
     docs = extraction.get("documents", [])
 

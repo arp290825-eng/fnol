@@ -8,10 +8,10 @@ import { getApiUrl } from '@/lib/api-config'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const full = searchParams.get('full') === 'true'
 
-    // Proxy to FastAPI server
-    const url = getApiUrl(`api/ingested-claims${full ? '?full=true' : ''}`)
+    // Forward all query params (full, source, etc.) to the FastAPI backend
+    const qs = searchParams.toString()
+    const url = getApiUrl(`api/ingested-claims${qs ? `?${qs}` : ''}`)
     const response = await fetch(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },

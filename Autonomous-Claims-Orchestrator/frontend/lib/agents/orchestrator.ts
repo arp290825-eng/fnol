@@ -22,8 +22,8 @@ export class LangGraphOrchestrator {
       ...config
     }
 
-    // Check if OpenAI API key is available
-    this.hasOpenAIKey = !!(process.env.OPENAI_API_KEY || (typeof window !== 'undefined' && (window as any).OPENAI_API_KEY))
+    // OpenAI is configured only via server/build env — never from browser storage or UI
+    this.hasOpenAIKey = !!process.env.OPENAI_API_KEY
 
     // Initialize agent nodes
     this.ingestionAgent = new IngestionAgent()

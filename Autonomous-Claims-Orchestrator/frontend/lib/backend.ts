@@ -23,7 +23,7 @@ export function runPython(
   return new Promise((resolve, reject) => {
     const proc = spawn(PY_CMD, ['-m', module, ...args], {
       cwd: PROJECT_ROOT,
-      env: { ...process.env, PYTHONPATH: PROJECT_ROOT },
+      env: { ...process.env, PYTHONPATH: PROJECT_ROOT, PROJECT_ROOT },
       stdio: stdin !== undefined ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe'],
     })
 

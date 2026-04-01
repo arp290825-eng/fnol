@@ -19,11 +19,13 @@ if __name__ == "__main__":
     to_addr = payload.get("to", "")
     subject = payload.get("subject", "")
     email_body = payload.get("emailBody", "")
-    
-    if not from_addr or not subject or not email_body:
-        print(json.dumps({"error": "Missing required fields: from, subject, emailBody"}), file=sys.stderr)
+    message_id = payload.get("messageId", "")
+
+    if not from_addr:
+        print(json.dumps({"error": "Missing required field: from"}), file=sys.stderr)
         sys.exit(1)
-    
-    result = process_faq_email(from_addr, to_addr, subject, email_body)
+
+    result = process_faq_email(from_addr, to_addr, subject, email_body, message_id=message_id)
     print(json.dumps(result))
-    sys.exit(0 if result.get("answered") or not result.get("is_faq") else 1)
+    # Always exit 0 so callers (e.g. SendGrid webhook) can read the JSON and check result["answered"]
+    sys.exit(0)

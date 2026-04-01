@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from backend.claim_notification.service import send_claim_under_review_email
 from backend.common.config import (
     CLAIMS_INDEX_FILE,
     CSV_FILE,
@@ -95,6 +96,17 @@ def save_processed_claim(claim: Dict[str, Any]) -> None:
 
     if existing < 0:
         _append_to_csv(to_save)
+        # Auto-send "under review" only for non–desk-rejected claims (desk-rejected get rejection email from orchestrator)
+        if (claim.get("status") or "").lower() != "desk_rejected":
+            try:
+                result = send_claim_under_review_email(claim)
+                if not result.get("success"):
+                    print(
+                        f"Claim under review email skipped or failed: {result.get('error', 'unknown')}",
+                        file=sys.stderr,
+                    )
+            except Exception as e:
+                print(f"Claim under review email error (claim saved): {e}", file=sys.stderr)
 
     entry = {
         "claimId": claim_id,
@@ -137,6 +149,19 @@ def get_processed_claim_by_id(claim_id: str) -> Optional[Dict[str, Any]]:
         return json.loads(Path(entry["filePath"]).read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return None
+
+
+def clear_all_processed_claims() -> None:
+    """Remove processed-claims index, CSV, and per-claim JSON files."""
+    ensure_data_dir()
+    if not PROCESSED_CLAIMS_DIR.exists():
+        return
+    for path in PROCESSED_CLAIMS_DIR.iterdir():
+        if path.is_file():
+            try:
+                path.unlink()
+            except OSError:
+                pass
 
 
 def get_csv_content() -> str:
@@ -254,10 +279,15 @@ def main() -> int:
     """CLI entry point."""
     args = sys.argv[1:]
     if not args:
-        print(json.dumps({"error": "Usage: list | get <claimId> | save | csv | stats"}), file=sys.stderr)
+        print(json.dumps({"error": "Usage: list | get <claimId> | save | csv | stats | clear"}), file=sys.stderr)
         return 1
 
     cmd = args[0].lower()
+
+    if cmd == "clear":
+        clear_all_processed_claims()
+        print(json.dumps({"success": True}))
+        return 0
 
     if cmd == "list":
         print(json.dumps(get_processed_claim_summaries()))

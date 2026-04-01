@@ -30,12 +30,13 @@
 | 24 | **Phase 5: Documentation** | Environment Variables Documentation | Updated `env.example` with all new environment variables for deployment configuration (PROJECT_ROOT, DATA_DIR, API_HOST, API_PORT, etc.). | ✅ Done | Medium |
 | 25 | **Phase 5: Documentation** | FastAPI Setup Guide | Created `FASTAPI_SETUP.md` with comprehensive setup instructions, API endpoint documentation, and deployment guidelines. | ✅ Done | Medium |
 | 26 | **Phase 5: Documentation** | API Configuration Documentation | Updated frontend API configuration documentation with notes about localhost vs 0.0.0.0 for browser compatibility. | ✅ Done | Medium |
+| 27 | **Phase 2: Notifications** | Claim Under Review Auto-Email | When a claim (with attachments) is first saved to the review page, an automatic professional email is sent to the claimant: "Your claim is under review" with claim ref, policy, status, and next steps. Uses same SMTP config as FAQ (SENDER_EMAIL, EMAIL_PASSWORD, SMTP_*). Optional: set `CLAIM_UNDER_REVIEW_EMAIL_ENABLED=false` to disable. | ✅ Done | High |
 
 ## Summary Statistics
 
-- **Total Changes**: 26
-- **Files Created**: 2 (fastapi_server.py, api-config.ts)
-- **Files Modified**: 15
+- **Total Changes**: 27
+- **Files Created**: 3 (fastapi_server.py, api-config.ts, claim_notification/service.py)
+- **Files Modified**: 16
 - **API Endpoints Created**: 11
 - **Environment Variables Added**: 13
 - **Frontend Routes Updated**: 8

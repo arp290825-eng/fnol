@@ -1,9 +1,9 @@
 import OpenAI from 'openai'
 
-// Initialize OpenAI client
+// Keys must come from deployment env (e.g. Vercel/host `.env`); do not store secrets in source or localStorage.
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-  dangerouslyAllowBrowser: true // For demo purposes - in production, use server-side API routes
+  apiKey: process.env.OPENAI_API_KEY ?? '',
+  dangerouslyAllowBrowser: true,
 })
 
 export interface FunctionCall {

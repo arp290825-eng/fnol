@@ -12,6 +12,7 @@ import {
   Shield,
   BarChart3,
   PieChart as PieChartIcon,
+  HelpCircle,
 } from 'lucide-react'
 import { ClaimData } from '@/types/claims'
 import { CONFIDENCE } from '@/lib/confidence'
@@ -70,6 +71,7 @@ export default function DashboardPage({ claimData, onReset }: DashboardPageProps
   const [kpis, setKpis] = useState<DashboardKpis | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [faqCount, setFaqCount] = useState<number>(0)
 
   useEffect(() => {
     async function fetchKpis() {
@@ -88,7 +90,19 @@ export default function DashboardPage({ claimData, onReset }: DashboardPageProps
         setLoading(false)
       }
     }
+    async function fetchFaqCount() {
+      try {
+        const res = await fetch('/api/ingested-claims?source=faq')
+        if (res.ok) {
+          const data = await res.json()
+          setFaqCount(Array.isArray(data) ? data.length : 0)
+        }
+      } catch {
+        // non-fatal
+      }
+    }
     fetchKpis()
+    fetchFaqCount()
   }, [claimData?.claimId])
 
   if (!claimData || !claimData.decisionPack) {
@@ -192,6 +206,31 @@ export default function DashboardPage({ claimData, onReset }: DashboardPageProps
         </div>
       ) : (
         <>
+          {/* FAQ Auto Resolution Tile */}
+          <div className="mb-4 rounded-xl border border-[#DDD6FE] bg-gradient-to-r from-[#F5F3FF] via-[#EDE9FE] to-[#F5F3FF] p-6 shadow-sm flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white rounded-xl shadow-sm border border-[#DDD6FE]">
+                <HelpCircle className="w-6 h-6 text-[#7C3AED]" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[#6D28D9] uppercase tracking-wider mb-0.5">
+                  FAQ Auto Resolved
+                </p>
+                <p className="text-3xl font-bold text-[#4C1D95]">{faqCount}</p>
+                <p className="text-xs text-[#7C3AED] mt-1">
+                  Customer queries answered automatically — no agent required
+                </p>
+              </div>
+            </div>
+            <div className="hidden sm:flex flex-col items-end gap-1 text-right">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D1FAE5] text-[#065F46] text-xs font-semibold">
+                <CheckCircle className="w-3.5 h-3.5" />
+                Fully automated
+              </span>
+              <p className="text-xs text-[#6D28D9] mt-1">0 agent touches · instant reply</p>
+            </div>
+          </div>
+
           {/* KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
             <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 shadow-sm">

@@ -14,15 +14,24 @@ from typing import Any, Dict, List, Optional
 # Path to local data files - Use environment variables with fallback
 _PROJECT_ROOT_ENV = os.getenv("PROJECT_ROOT")
 if _PROJECT_ROOT_ENV:
-    PROJECT_ROOT = Path(_PROJECT_ROOT_ENV)
+    _project_root = Path(_PROJECT_ROOT_ENV)
 else:
-    PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+    _project_root = Path(__file__).resolve().parent.parent.parent
 
 _LOCAL_DATA_DIR_ENV = os.getenv("LOCAL_DATA_DIR")
 if _LOCAL_DATA_DIR_ENV:
-    LOCAL_DATA_DIR = Path(_LOCAL_DATA_DIR_ENV)
+    _local_data = Path(_LOCAL_DATA_DIR_ENV)
 else:
-    LOCAL_DATA_DIR = PROJECT_ROOT / "database" / "local_data"
+    _local_data = _project_root / "database" / "local_data"
+
+# If database not found (e.g. when run from API with different cwd), try cwd
+if not _local_data.joinpath("policies.json").exists():
+    _cwd_data = Path.cwd() / "database" / "local_data"
+    if _cwd_data.joinpath("policies.json").exists():
+        _local_data = _cwd_data
+
+PROJECT_ROOT = _project_root
+LOCAL_DATA_DIR = _local_data
 
 _MAPPING_FILE_ENV = os.getenv("POLICY_GROUNDING_MAPPING_FILE")
 if _MAPPING_FILE_ENV:
@@ -88,6 +97,31 @@ def find_customer_by_policy(policy_number: str) -> Optional[Dict[str, Any]]:
     customer = next((c for c in _customers_cache if c.get("customer_id") == customer_id), None)
     
     return customer
+
+
+def find_customer_by_email(email: str) -> Optional[Dict[str, Any]]:
+    """Find customer by email (e.g. from inbound email sender)."""
+    _load_data()
+    if not email or not str(email).strip():
+        return None
+    normalized = str(email).strip().lower()
+    # Support "Name <email@domain.com>" format
+    if "<" in normalized and ">" in normalized:
+        start = normalized.index("<") + 1
+        end = normalized.index(">")
+        normalized = normalized[start:end].strip()
+    return next(
+        (c for c in _customers_cache if (c.get("email_id") or "").strip().lower() == normalized),
+        None,
+    )
+
+
+def get_policies_for_customer(customer_id: str) -> List[Dict[str, Any]]:
+    """Get all policies for a customer (for FAQ lookups by email)."""
+    _load_data()
+    if not customer_id:
+        return []
+    return [p for p in _policies_cache if p.get("customer_id") == customer_id]
 
 
 def get_policy_by_number(policy_number: str) -> Optional[Dict[str, Any]]:
@@ -164,10 +198,16 @@ def _get_recommendation(confidence_score: float) -> Dict[str, Any]:
         }
 
 
-def get_policy_grounding_from_local_data(extracted_fields: Dict[str, Any]) -> List[Dict[str, Any]]:
+def get_policy_grounding_from_local_data(
+    extracted_fields: Dict[str, Any],
+    sender_email: str = "",
+) -> List[Dict[str, Any]]:
     """
     Get policy grounding from local JSON data files following mapping JSON workflow.
-    
+
+    When no policy number is present in extracted_fields, the function falls back to
+    looking up the customer by sender_email and uses their first active policy.
+
     Implements the 6-step workflow from policy_grounding_mapping.json:
     1. Customer Verification
     2. Policy Retrieval
@@ -177,12 +217,29 @@ def get_policy_grounding_from_local_data(extracted_fields: Dict[str, Any]) -> Li
     6. Confidence Scoring
     """
     _load_data()
-    
+
     policy_number = str(extracted_fields.get("policyNumber", "")).strip().upper()
     loss_type = str(extracted_fields.get("lossType", "")).strip().lower()
     claim_amount = float(extracted_fields.get("estimatedAmount", 0) or extracted_fields.get("estimatedDamage", 0) or 0)
     loss_date = extracted_fields.get("lossDate")
-    
+
+    # --- Email-based fallback: resolve policy number from sender email ---
+    if not policy_number and sender_email and sender_email.strip():
+        customer = find_customer_by_email(sender_email.strip())
+        if customer:
+            cust_policies = get_policies_for_customer(customer.get("customer_id", ""))
+            if cust_policies:
+                # Prefer the first active policy; fall back to the most recently listed one
+                active_pol = next(
+                    (
+                        p for p in cust_policies
+                        if p.get("is_active") and p.get("policy_status", "").upper() == "ACTIVE"
+                    ),
+                    None,
+                )
+                resolved = active_pol or cust_policies[0]
+                policy_number = resolved.get("policy_number", "").strip().upper()
+
     if not policy_number:
         return []
     
@@ -323,8 +380,25 @@ def get_policy_grounding_from_local_data(extracted_fields: Dict[str, Any]) -> Li
             content = f"Policy status: {policy_status}, Active: {is_active}, Effective: {effective_date}, Expires: {expiration_date}, Claim date: {claim_date}"
             rationale = "Policy is not active or claim date outside coverage period"
         
+        # Assign a specific clauseId based on the exact rejection reason
+        if is_expired:
+            clause_id = "POLICY-EXPIRED"
+        elif claim_date and effective_date:
+            try:
+                eff_date_check = datetime.strptime(effective_date, "%Y-%m-%d").date() if isinstance(effective_date, str) else effective_date
+                if claim_date < eff_date_check:
+                    clause_id = "CLAIM-BEFORE-EFFECTIVE-DATE"
+                elif exp_date and claim_date > exp_date:
+                    clause_id = "CLAIM-AFTER-EXPIRATION"
+                else:
+                    clause_id = "POLICY-INACTIVE"
+            except:
+                clause_id = "POLICY-INACTIVE"
+        else:
+            clause_id = "POLICY-INACTIVE"
+
         return [{
-            "clauseId": "POLICY-INACTIVE" if not is_expired else "POLICY-EXPIRED",
+            "clauseId": clause_id,
             "title": title,
             "snippet": snippet,
             "content": content,

@@ -9,7 +9,7 @@
     "agent_contact": "(555) 111-2222",
     "created_date": "2022-03-15",
     "effective_date": "2024-01-01",
-    "expiration_date": "2024-12-31",
+    "expiration_date": "2026-12-31",
     "renewal_date": "2024-12-01",
     "valid_upto": "2024-12-31",
     "cancellation_date": null,
@@ -18,8 +18,8 @@
     "is_renewable": true,
     "premium_amount": 1500.0,
     "premium_frequency": "ANNUAL",
-    "last_premium_paid_date": "2024-01-01",
-    "next_premium_due_date": "2025-01-01",
+    "last_premium_paid_date": "2026-01-01",
+    "next_premium_due_date": "2027-01-01",
     "total_premium_paid": 4500.0,
     "outstanding_balance": 0.0,
     "payment_status": "CURRENT",
@@ -3825,7 +3825,7 @@
     "underwriting_notes": "Standard policy"
   },
   {
-    "policy_number": "CO754688507",
+    "policy_number": "CL789012345",
     "customer_id": "CUST00019",
     "policy_type": "COMMERCIAL",
     "policy_subtype": "HOMEOWNERS",

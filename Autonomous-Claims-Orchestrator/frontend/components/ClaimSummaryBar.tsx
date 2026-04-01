@@ -11,6 +11,7 @@ interface ClaimSummaryBarProps {
   onBack?: () => void
   onContinue?: () => void
   continueLabel?: string
+  continueDisabled?: boolean
   showActions?: boolean
   showClaimDropdown?: boolean
   onClaimSelect?: (claimId: string) => void
@@ -21,6 +22,7 @@ export default function ClaimSummaryBar({
   onBack,
   onContinue,
   continueLabel = 'Continue',
+  continueDisabled = false,
   showActions = true,
   showClaimDropdown = false,
   onClaimSelect,
@@ -157,7 +159,16 @@ export default function ClaimSummaryBar({
               </button>
             )}
             {onContinue && (
-              <button onClick={onContinue} className="btn-primary flex items-center space-x-2">
+              <button
+                onClick={continueDisabled ? undefined : onContinue}
+                disabled={continueDisabled}
+                title={continueDisabled ? 'This claim has been desk-rejected and cannot proceed to decision.' : undefined}
+                className={`flex items-center space-x-2 ${
+                  continueDisabled
+                    ? 'btn-secondary opacity-40 cursor-not-allowed pointer-events-none'
+                    : 'btn-primary'
+                }`}
+              >
                 <span>{continueLabel}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>

@@ -74,6 +74,9 @@ CLAIMS_INDEX_FILE = PROCESSED_CLAIMS_DIR / "claims-index.json"
 # Claims history CSV file
 CSV_FILE = PROCESSED_CLAIMS_DIR / "claims-history.csv"
 
+# FAQ answered message IDs (dedup only; FAQ emails are not ingested as claims)
+FAQ_ANSWERED_IDS_FILE = DATA_DIR / "faq-answered-ids.json"
+
 
 # ============================================================================
 # Utility Functions

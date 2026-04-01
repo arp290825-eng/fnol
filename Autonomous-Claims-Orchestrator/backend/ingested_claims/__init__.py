@@ -7,6 +7,7 @@ Provides CRUD, policy extraction, deduplication.
 
 from backend.ingested_claims.service import (
     add_dedup_keys_to_set,
+    add_faq_answered_id,
     clear_all_ingested_claims,
     extract_policy_number,
     get_all_ingested_claims,
@@ -20,6 +21,7 @@ from backend.ingested_claims.service import (
 
 __all__ = [
     "add_dedup_keys_to_set",
+    "add_faq_answered_id",
     "clear_all_ingested_claims",
     "extract_policy_number",
     "get_all_ingested_claims",

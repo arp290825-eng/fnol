@@ -7,6 +7,7 @@ Deployment-ready with environment variable configuration.
 
 import os
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -22,6 +23,7 @@ from pydantic import BaseModel
 
 # Import backend services
 from backend.dashboard.service import (
+    clear_all_processed_claims,
     get_dashboard_kpis,
     get_processed_claim_by_id,
     get_processed_claim_summaries,
@@ -31,6 +33,7 @@ from backend.email_ingestion.service import sync_inbox
 from backend.ingested_claims.service import (
     clear_all_ingested_claims,
     get_all_ingested_claims,
+    get_faq_claims,
     get_ingested_claim_by_id,
     get_policy_numbers,
 )
@@ -54,6 +57,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# One sync at a time so overlapping POSTs cannot double-ingest the same mailbox state
+_SYNC_INBOX_LOCK = threading.Lock()
+
 
 # Request/Response Models
 class ProcessClaimRequest(BaseModel):
@@ -64,6 +70,8 @@ class SaveClaimRequest(BaseModel):
     claimId: Optional[str] = None
     decisionPack: Dict[str, Any]
     ingestedClaimId: Optional[str] = None
+    # Original FNOL From — used for auto acknowledgement when first saved via this API
+    sourceEmailFrom: Optional[str] = None
     status: Optional[str] = None
     createdAt: Optional[str] = None
     processingTime: Optional[int] = None
@@ -76,10 +84,14 @@ class SyncInboxResponse(BaseModel):
     scanned: int
     skippedNoFnol: int
     skippedDuplicate: int
+    skippedComplaintCorrespondence: Optional[int] = 0
+    mergedFollowUp: Optional[int] = 0
     faqAnswered: Optional[int] = 0
     faqError: Optional[int] = 0
     errors: List[str]
     hint: Optional[str] = None
+    uidsTotalInMailbox: Optional[int] = None
+    uidsTruncated: Optional[bool] = None
 
 
 # Health check endpoint
@@ -126,17 +138,20 @@ async def process_claim_endpoint(request: ProcessClaimRequest) -> Dict[str, Any]
 
 # Ingested Claims Endpoints
 @app.get("/api/ingested-claims")
-async def get_ingested_claims(full: bool = False) -> List[Dict[str, Any]]:
+async def get_ingested_claims(full: bool = False, source: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Get list of ingested claims.
-    
+
     Args:
-        full: If True, return full claim data; if False, return summaries
-        
+        full: If True, return full claim data; if False, return summaries.
+        source: Filter by source. Use 'faq' to return FAQ auto-resolution conversations.
+
     Returns:
         List of ingested claims
     """
     try:
+        if source == "faq":
+            return get_faq_claims()
         if full:
             claims = get_all_ingested_claims()
         else:
@@ -194,6 +209,19 @@ async def clear_ingested_claims() -> Dict[str, Any]:
         raise HTTPException(
             status_code=500,
             detail=f"Failed to clear ingested claims: {str(e)}"
+        )
+
+
+@app.post("/api/claims/clear")
+async def clear_processed_claims() -> Dict[str, Any]:
+    """Clear processed-claims index, CSV, and all stored processed claim JSON files."""
+    try:
+        clear_all_processed_claims()
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to clear processed claims: {str(e)}",
         )
 
 
@@ -311,18 +339,23 @@ async def sync_inbox_endpoint() -> SyncInboxResponse:
         Sync results with counts and errors
     """
     try:
-        result = sync_inbox()
-        
+        with _SYNC_INBOX_LOCK:
+            result = sync_inbox()
+
         return SyncInboxResponse(
             success=result.get("success", False),
             ingested=result.get("ingested", 0),
             scanned=result.get("scanned", 0),
             skippedNoFnol=result.get("skippedNoFnol", 0),
             skippedDuplicate=result.get("skippedDuplicate", 0),
+            skippedComplaintCorrespondence=result.get("skippedComplaintCorrespondence", 0),
+            mergedFollowUp=result.get("mergedFollowUp", 0),
             faqAnswered=result.get("faqAnswered", 0),
             faqError=result.get("faqError", 0),
             errors=result.get("errors", []),
             hint=result.get("hint"),
+            uidsTotalInMailbox=result.get("uidsTotalInMailbox"),
+            uidsTruncated=result.get("uidsTruncated"),
         )
     except Exception as e:
         raise HTTPException(
